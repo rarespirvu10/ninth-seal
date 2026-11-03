@@ -20,7 +20,7 @@ export class Game {
   private readonly events = new EventBus<GameEvents>();
   private readonly scene = new THREE.Scene();
   private readonly isoCamera = new IsometricCamera();
-  private readonly input = new Input();
+  private readonly input: Input;
   private readonly renderer: GameRenderer;
   private readonly player: PlayerController;
   private readonly debug: DebugOverlay;
@@ -34,6 +34,7 @@ export class Game {
     private readonly physics: PhysicsWorld,
     character: CharacterAsset,
   ) {
+    this.input = new Input(canvas);
     this.scene.background = new THREE.Color(0x050407);
     this.scene.fog = new THREE.FogExp2(0x050407, 0.012);
     this.scene.add(level.object);

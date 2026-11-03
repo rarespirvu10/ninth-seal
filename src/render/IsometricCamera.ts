@@ -27,6 +27,9 @@ export class IsometricCamera {
   private readonly offset = new THREE.Vector3();
   private readonly focus = new THREE.Vector3();
   private readonly goal = new THREE.Vector3();
+  private readonly raycaster = new THREE.Raycaster();
+  private readonly ndc = new THREE.Vector2();
+  private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private readonly sharpness: number;
   private readonly lookHeight: number;
 
@@ -47,6 +50,20 @@ export class IsometricCamera {
 
     this.forward.set(-Math.sin(yaw), 0, -Math.cos(yaw));
     this.right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+  }
+
+  /**
+   * Where the cursor points on a horizontal plane at `height`, written into `target`.
+   * Returns null if the ray is parallel to the plane (impossible from this camera's angle).
+   */
+  pointOnGround(
+    pointer: { x: number; y: number },
+    height: number,
+    target: THREE.Vector3,
+  ): THREE.Vector3 | null {
+    this.raycaster.setFromCamera(this.ndc.set(pointer.x, pointer.y), this.camera);
+    this.groundPlane.constant = -height;
+    return this.raycaster.ray.intersectPlane(this.groundPlane, target);
   }
 
   /** Jumps straight to the target with no smoothing. */
