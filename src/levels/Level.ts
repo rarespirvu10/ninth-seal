@@ -23,6 +23,7 @@ export class Level {
   private readonly fires: Fire[] = [];
   private shadowBudget = 0;
   private shadowMapSize = 512;
+  private frame = 0;
 
   private constructor(
     private readonly layout: LevelLayout,
@@ -120,16 +121,20 @@ export class Level {
   }
 
   /**
-   * Point-light shadows are the most expensive part of a frame, so only a few fires cast them.
-   * The budget goes to those nearest the player, whose shadows are the ones you notice.
+   * Point-light shadows are the most expensive part of a frame: each one redraws every shadow
+   * caster six times. So only a few fires cast them, chosen nearest the player, whose shadows are
+   * the ones you notice. The nearest redraws every frame; the others take turns, every other frame.
    */
   private assignShadows(focus: THREE.Vector3): void {
+    this.frame++;
     this.fires.sort(
       (a, b) =>
         a.object.position.distanceToSquared(focus) - b.object.position.distanceToSquared(focus),
     );
     this.fires.forEach((fire, index) => {
-      fire.setCastShadow(index < this.shadowBudget, this.shadowMapSize);
+      const casts = index < this.shadowBudget;
+      fire.setCastShadow(casts, this.shadowMapSize);
+      if (casts) fire.setShadowRefresh(index === 0, (this.frame + index) % 2 === 0);
     });
   }
 }

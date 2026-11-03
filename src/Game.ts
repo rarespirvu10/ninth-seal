@@ -130,6 +130,11 @@ export class Game {
     return new Game(canvas, ui, level, physics, character, new Map([[SKELETON.character, skeleton]]));
   }
 
+  /** Prepares GPU resources while the loading screen is still up. */
+  async warmUp(): Promise<void> {
+    await this.renderer.warmUp();
+  }
+
   start(): void {
     this.loop.start();
   }

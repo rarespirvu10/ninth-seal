@@ -7,6 +7,7 @@ if (!canvas || !ui) throw new Error('Missing #game canvas or #ui root');
 
 try {
   const game = await Game.create(canvas, ui);
+  await game.warmUp();
   loading?.remove();
   game.start();
 } catch (error) {
