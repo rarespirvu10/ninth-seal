@@ -40,3 +40,26 @@ export function scaleRootMotion(curve: RootMotionCurve, scale: number): RootMoti
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
+
+/**
+ * World-space horizontal displacement between two clip times, for a character facing `facing`
+ * radians (0 faces +Z). Written into `target` as (x, z); `target.y` is left untouched.
+ */
+export function rootMotionDelta(
+  curve: RootMotionCurve,
+  from: number,
+  to: number,
+  facing: number,
+  target: { x: number; z: number },
+): { x: number; z: number } {
+  const a = sampleRootMotion(curve, from);
+  const b = sampleRootMotion(curve, to);
+  const forward = b.forward - a.forward;
+  const right = b.right - a.right;
+  // Facing f points along (sin f, cos f); the character's right is (-cos f, sin f).
+  const sin = Math.sin(facing);
+  const cos = Math.cos(facing);
+  target.x = sin * forward - cos * right;
+  target.z = cos * forward + sin * right;
+  return target;
+}
