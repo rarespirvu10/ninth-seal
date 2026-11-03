@@ -118,11 +118,13 @@ export class PlayerController implements Combatant {
         },
         dead: {
           enter: (player) => {
+            player.motor.setGhost(true);
             player.startAction(player.death);
             player.events.emit('combat:died', { target: 'player' });
           },
           update: (player, dt) => {
-            player.playAction(player.death, dt);
+            // Fall with the death animation, then stay put until respawning.
+            if (!player.death.finished) player.playAction(player.death, dt);
             return undefined;
           },
         },
@@ -179,6 +181,7 @@ export class PlayerController implements Combatant {
 
   respawn(feet: THREE.Vector3): void {
     this.health.reset();
+    this.motor.setGhost(false);
     this.motor.teleport(feet);
     this.motor.facing = 0;
     this.sinceFlinch = Infinity;

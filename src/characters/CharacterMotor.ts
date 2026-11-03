@@ -109,9 +109,9 @@ export class CharacterMotor {
     this.verticalVelocity = 0;
   }
 
-  /** Turns collision off for corpses, so others can walk over them. */
-  setCollisionEnabled(enabled: boolean): void {
-    this.body.setCollisionEnabled(enabled);
+  /** Corpses become ghosts: other characters walk through them and can't push them. */
+  setGhost(ghost: boolean): void {
+    this.body.setGhost(ghost);
   }
 
   private step(dt: number): void {

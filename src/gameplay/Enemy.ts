@@ -128,14 +128,15 @@ export class Enemy implements Combatant {
     },
     dead: {
       enter: (enemy: Enemy) => {
+        // A ghost from the first frame: walkable through, and impossible to push.
+        enemy.motor.setGhost(true);
         enemy.startAction(enemy.death);
         enemy.events.emit('combat:died', { target: enemy.id });
       },
       update: (enemy: Enemy, dt: number) => {
-        if (enemy.playAction(enemy.death, dt)) {
-          // Down for good: let others walk over the body.
-          enemy.motor.setCollisionEnabled(false);
-        }
+        // Fall with the death animation's root motion, then never move again: the body stays
+        // where it landed, as part of the floor.
+        if (!enemy.death.finished) enemy.playAction(enemy.death, dt);
         return undefined;
       },
     },
@@ -165,6 +166,7 @@ export class Enemy implements Combatant {
     return this.machine.state;
   }
 
+
   takeHit(damage: number, fromX: number, fromZ: number): void {
     const taken = this.health.damage(damage);
     if (taken === 0) return;
@@ -188,7 +190,7 @@ export class Enemy implements Combatant {
 
   respawn(): void {
     this.health.reset();
-    this.motor.setCollisionEnabled(true);
+    this.motor.setGhost(false);
     this.motor.teleport(this.spawn);
     this.motor.facing = this.spawnFacing;
     this.cooldown = 0;
