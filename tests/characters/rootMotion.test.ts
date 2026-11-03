@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sampleRootMotion, scaleRootMotion } from '../../src/characters/rootMotion';
+import { rootMotionDelta, sampleRootMotion, scaleRootMotion } from '../../src/characters/rootMotion';
 
 const curve = { fps: 10, forward: [0, 0.1, 0.3, 0.6], right: [0, 0, -0.1, -0.1] };
 
@@ -33,5 +33,27 @@ describe('scaleRootMotion', () => {
     expect(scaled.forward).toEqual([0, 0.2, 0.6, 1.2]);
     expect(scaled.right).toEqual([0, 0, -0.2, -0.2]);
     expect(scaled.fps).toBe(10);
+  });
+});
+
+describe('rootMotionDelta', () => {
+  const lunge = { fps: 10, forward: [0, 1, 2], right: [0, 0, 0.5] };
+
+  it('moves along +Z when facing 0', () => {
+    const delta = rootMotionDelta(lunge, 0, 0.1, 0, { x: 0, z: 0 });
+    expect(delta.x).toBeCloseTo(0);
+    expect(delta.z).toBeCloseTo(1);
+  });
+
+  it('rotates travel with the facing direction', () => {
+    const delta = rootMotionDelta(lunge, 0, 0.1, Math.PI / 2, { x: 0, z: 0 });
+    expect(delta.x).toBeCloseTo(1);
+    expect(delta.z).toBeCloseTo(0);
+  });
+
+  it("maps sideways travel to the character's right (-X when facing +Z)", () => {
+    const delta = rootMotionDelta(lunge, 0.1, 0.2, 0, { x: 0, z: 0 });
+    expect(delta.x).toBeCloseTo(-0.5);
+    expect(delta.z).toBeCloseTo(1);
   });
 });

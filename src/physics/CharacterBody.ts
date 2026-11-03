@@ -66,6 +66,17 @@ export class CharacterBody {
     });
   }
 
+  /** Moves instantly to a feet position, ignoring collisions. */
+  teleport(feet: THREE.Vector3): void {
+    const center = { x: feet.x, y: feet.y + this.halfHeight, z: feet.z };
+    this.body.setTranslation(center, true);
+    this.body.setNextKinematicTranslation(center);
+  }
+
+  setCollisionEnabled(enabled: boolean): void {
+    this.collider.setEnabled(enabled);
+  }
+
   /** Writes the position of the character's feet into `target`. */
   getFeetPosition(target: THREE.Vector3): THREE.Vector3 {
     const { x, y, z } = this.body.translation();

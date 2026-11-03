@@ -4,7 +4,7 @@ import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { Fire } from '../render/effects/Fire';
 import { loadPbrMaterial, setAnisotropy } from '../render/materials';
 import type { QualitySettings } from '../render/QualitySettings';
-import { parseLevelLayout, type LevelLayout, type MaterialSpec } from './LevelLayout';
+import { parseLevelLayout, type EnemySpawn, type LevelLayout, type MaterialSpec } from './LevelLayout';
 
 const LEVEL_ROOT = `${import.meta.env.BASE_URL}assets/levels`;
 /** Mesh name suffix set by tools/blender/bake_level.py for geometry that must not cast shadows. */
@@ -23,6 +23,7 @@ export class Level {
   private readonly fires: Fire[] = [];
   private shadowBudget = 0;
   private shadowMapSize = 512;
+  private frame = 0;
 
   private constructor(
     private readonly layout: LevelLayout,
@@ -75,7 +76,12 @@ export class Level {
     return new Level(layout, gltf.scene, [...materials.values()]);
   }
 
+  get enemySpawns(): readonly EnemySpawn[] {
+    return this.layout.enemies ?? [];
+  }
+
   addColliders(physics: PhysicsWorld): void {
+    this.addColliderShapes(physics);
     for (const piece of this.layout.pieces) {
       if (!piece.solid) continue;
       const position = new THREE.Vector3(...piece.position);
@@ -89,6 +95,19 @@ export class Level {
   }
 
   /** `focus` is where the player is: the fires nearest to it get the shadow budget. */
+  private addColliderShapes(physics: PhysicsWorld): void {
+    for (const collider of this.layout.colliders ?? []) {
+      const [x, y, z] = collider.position;
+      const corners: number[] = [];
+      for (const [[w, d], height] of [[collider.bottom, 0], [collider.top, collider.height]] as const) {
+        for (const sx of [-1, 1]) {
+          for (const sz of [-1, 1]) corners.push(x + (sx * w) / 2, y + height, z + (sz * d) / 2);
+        }
+      }
+      physics.addStaticConvexHull(new Float32Array(corners));
+    }
+  }
+
   update(time: number, camera: THREE.Camera, focus: THREE.Vector3): void {
     for (const fire of this.fires) fire.update(time, camera);
     this.assignShadows(focus);
@@ -102,16 +121,20 @@ export class Level {
   }
 
   /**
-   * Point-light shadows are the most expensive part of a frame, so only a few fires cast them.
-   * The budget goes to those nearest the player, whose shadows are the ones you notice.
+   * Point-light shadows are the most expensive part of a frame: each one redraws every shadow
+   * caster six times. So only a few fires cast them, chosen nearest the player, whose shadows are
+   * the ones you notice. The nearest redraws every frame; the others take turns, every other frame.
    */
   private assignShadows(focus: THREE.Vector3): void {
+    this.frame++;
     this.fires.sort(
       (a, b) =>
         a.object.position.distanceToSquared(focus) - b.object.position.distanceToSquared(focus),
     );
     this.fires.forEach((fire, index) => {
-      fire.setCastShadow(index < this.shadowBudget, this.shadowMapSize);
+      const casts = index < this.shadowBudget;
+      fire.setCastShadow(casts, this.shadowMapSize);
+      if (casts) fire.setShadowRefresh(index === 0, (this.frame + index) % 2 === 0);
     });
   }
 }

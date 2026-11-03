@@ -75,6 +75,14 @@ export class GameRenderer {
     if (level !== this._quality) this.applyQuality(level);
   }
 
+  /**
+   * Compiles every material's shaders up front, including objects that are off screen, so the
+   * first time an enemy appears doesn't stall the frame while its shaders compile.
+   */
+  async warmUp(): Promise<void> {
+    await this.renderer.compileAsync(this.scene, this.camera);
+  }
+
   render(frameTime: number): void {
     if (this.dynamicResolution.update(frameTime)) this.applyResolution();
     this.renderer.info.reset();

@@ -62,6 +62,22 @@ describe('parseLevelLayout', () => {
     expect(() => parseLevelLayout(layout)).toThrow('spawn: expected 3 numbers');
   });
 
+  it('accepts enemy spawns and rejects malformed ones', () => {
+    const layout = { ...validLayout(), enemies: [{ type: 'skeleton', position: [1, 0, 2], facing: 90 }] };
+    expect(parseLevelLayout(layout).enemies).toHaveLength(1);
+
+    const broken = { ...validLayout(), enemies: [{ type: 'skeleton', position: [1, 0] }] };
+    expect(() => parseLevelLayout(broken)).toThrow('enemies[0].position: expected 3 numbers');
+  });
+
+  it('accepts collision-only frustums and rejects malformed ones', () => {
+    const ramp = { shape: 'frustum', position: [0, 0, 0], bottom: [7, 7], top: [4, 4], height: 0.4 };
+    expect(parseLevelLayout({ ...validLayout(), colliders: [ramp] }).colliders).toHaveLength(1);
+    expect(() => parseLevelLayout({ ...validLayout(), colliders: [{ ...ramp, top: [4] }] })).toThrow(
+      'colliders[0].top: expected 2 numbers',
+    );
+  });
+
   it('rejects malformed colors', () => {
     const layout = validLayout();
     layout.materials.stone.tint = 'white';

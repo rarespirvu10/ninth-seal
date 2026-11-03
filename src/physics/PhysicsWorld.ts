@@ -35,6 +35,13 @@ export class PhysicsWorld {
     );
   }
 
+  /** Static convex shape around the given points (x, y, z triples in world space). */
+  addStaticConvexHull(points: Float32Array): void {
+    const desc = RAPIER.ColliderDesc.convexHull(points);
+    if (!desc) throw new Error('Could not build a convex hull from these points');
+    this.world.createCollider(desc);
+  }
+
   createCharacter(feetPosition: THREE.Vector3, options: CharacterBodyOptions = {}): CharacterBody {
     return new CharacterBody(this.world, feetPosition, options);
   }

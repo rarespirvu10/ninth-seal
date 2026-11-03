@@ -41,7 +41,14 @@ A generic, typed finite state machine (`src/core/StateMachine.ts`) drives player
 - `AttackSequence` advances a combo on the fixed step. A click during a swing, or holding the button, chains the next step; otherwise the combo ends. Hit-window checks use interval overlap, so a long frame can never skip a hit.
 - Each swing re-aims at the cursor, and its clip's root-motion curve moves the body through physics, so lunges stop at walls.
 - Animation follows gameplay, not the reverse: action clips have their time set from the fixed-step simulation (interpolated for rendering), so the pose always matches the hit window.
-- During a hit window the player emits `player:strike` events; combat resolution subscribes to them rather than being called by the player code.
+- During a hit window, attackers emit `combat:strike` events. `CombatSystem` subscribes and resolves them with an arc test that counts the target's body width, so neither side calls the other: each swing hits a target at most once, the player hits enemies, and enemies hit the player.
+- Damage and deaths are events too (`combat:damaged`, `combat:died`), which the HUD listens to.
+
+### Characters and AI
+- `CharacterMotor` is a component owned by both the player and enemies. It handles movement on the fixed step, gravity, facing, root-motion travel, speed measurement, and render interpolation.
+- Each enemy is a state machine: idle, then chase once the player is within aggro range, then attack when in reach and off cooldown, with flinch and death reachable from any state. Tuning lives in data (`src/gameplay/enemies.ts`).
+- The player flinches when hit, then ignores further flinches for a moment, so groups can't stun-lock them.
+- With the debug overlay open, each enemy's live state and health float above it.
 
 ### Event bus
 A typed publish/subscribe bus. Event names and payloads are checked at compile time. Example: combat publishes `damage:dealt`; UI shows damage numbers and audio plays a hit sound without either knowing about combat.
@@ -61,7 +68,8 @@ Built on the Web Audio API.
 ## Rendering
 
 - **Baked lighting:** ambient sky light and bounced fire light are computed in Blender and stored in a lightmap, so corners and the areas behind pillars darken naturally. Characters get a matching image-based environment instead, so the level isn't lit twice.
-- **Dynamic lights:** fires stay live on top of the bake, so they flicker and cast real-time shadows. Shadows are budgeted per quality preset and given to the fires nearest the player.
+- **Dynamic lights:** fires stay live on top of the bake, so they flicker and cast real-time shadows. Shadows are budgeted per quality preset and given to the fires nearest the player. The nearest redraws its shadow map every frame and the others every other frame; each point-light shadow redraws every caster six times, so this keeps fights at 60 FPS.
+- **Shader warm-up:** every material compiles while the loading screen is up, so enemies appearing for the first time don't stall a frame.
 - **PBR materials** using photo-scanned textures.
 - **Post-processing:** ambient occlusion, bloom, filmic tone mapping, color grading, vignette, film grain.
 - **Custom shaders:** upgrade glow (+7 to +9), rune glow, dissolve on death, fog, liquids.
@@ -85,7 +93,8 @@ Each level is described once, in `data/levels/<name>.json`: pieces, materials, f
 
 1. `npm run bake:level -- data/levels/<name>.json` runs `tools/blender/bake_level.py` in Blender. It builds the geometry with world-scaled texture coordinates, drops faces the fixed camera can never see, joins pieces into one mesh per material, unwraps a shared lightmap atlas, and bakes two Cycles passes (bounced fire light, then ambient sky light).
 2. Output goes to `public/assets/levels/<name>/`: the geometry (`level.glb`), an 8-bit sRGB lightmap scaled to its full range, and the intensity that decodes it.
-3. At runtime the game loads that geometry and lightmap for visuals, and reads the same layout file for colliders, fires, and the spawn point. Visuals and physics can't drift apart.
+3. At runtime the game loads that geometry and lightmap for visuals, and reads the same layout file for colliders, fires, enemy spawns, and the player's spawn point. Visuals and physics can't drift apart.
+4. Layouts can add collision-only shapes, invisible in the game, where collision should be simpler than what's drawn. The test room's dais has a ramp over its two 20 cm steps, because Rapier's step climbing fails for characters moving slower than about 2 m/s.
 
 ### Character pipeline
 1. Raw Mixamo downloads go in `assets-src/mixamo/<name>/` (not committed): `<name>.fbx` with the skin and idle animation, plus one skinless FBX per extra animation.

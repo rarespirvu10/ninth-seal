@@ -3,7 +3,7 @@ export type LocomotionState = 'idle' | 'walk' | 'run';
 /** Below this horizontal speed (m/s) the character counts as standing still. */
 const IDLE_THRESHOLD = 0.3;
 const MIN_RATE = 0.5;
-const MAX_RATE = 2;
+const DEFAULT_MAX_RATE = 2;
 
 /**
  * Picks the clip for a movement speed: idle when (nearly) still, otherwise walk or run,
@@ -23,8 +23,8 @@ export function selectLocomotionState(
  * A negative ground speed (a clip that travels backward) gives a negative rate: played in reverse.
  * The magnitude is clamped so brief speed dips don't produce slow-motion or frantic animation.
  */
-export function playbackRate(speed: number, groundSpeed: number): number {
+export function playbackRate(speed: number, groundSpeed: number, maxRate = DEFAULT_MAX_RATE): number {
   if (groundSpeed === 0) return 1;
   const rate = speed / Math.abs(groundSpeed);
-  return Math.sign(groundSpeed) * Math.min(MAX_RATE, Math.max(MIN_RATE, rate));
+  return Math.sign(groundSpeed) * Math.min(maxRate, Math.max(MIN_RATE, rate));
 }

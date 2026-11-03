@@ -83,4 +83,13 @@ export class Fire {
     }
     this.light.castShadow = enabled;
   }
+
+  /**
+   * Controls how often the shadow map is redrawn: every frame, or only when `refreshNow` is set.
+   * Distant fires can redraw every other frame at no visible cost.
+   */
+  setShadowRefresh(everyFrame: boolean, refreshNow: boolean): void {
+    this.light.shadow.autoUpdate = everyFrame;
+    if (!everyFrame && refreshNow) this.light.shadow.needsUpdate = true;
+  }
 }
