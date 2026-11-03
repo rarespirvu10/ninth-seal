@@ -506,6 +506,10 @@
         ]
       }
     },
+    "run": {
+      "duration": 0.8,
+      "groundSpeed": 3.085
+    },
     "walk": {
       "duration": 4.0333,
       "groundSpeed": 0.324
