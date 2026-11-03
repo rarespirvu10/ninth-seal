@@ -45,6 +45,12 @@ Projectiles, particles, damage numbers, and enemies are pooled to avoid garbage-
 ### Saving
 Save data is a versioned schema stored in IndexedDB. Each format change adds a migration, so older saves upgrade automatically.
 
+### Audio
+Built on the Web Audio API.
+- **Music director:** a state machine (exploration, combat, boss) driven by event-bus events such as `combat:started` and `boss:entered`. Transitions crossfade between tracks on the beat.
+- **Positional sound:** fire, enemies, and impacts are placed in 3D with HRTF panning relative to the listener, so they move between speakers as the player does.
+- **Sound effects** are pooled voices with randomized pitch and volume to avoid repetition. Footsteps are triggered from animation events.
+
 ## Rendering
 
 - **Baked lighting:** the dungeon's static lighting is computed in Blender and stored in lightmaps. Characters receive matching light from light probes.
