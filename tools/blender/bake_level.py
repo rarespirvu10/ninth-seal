@@ -4,7 +4,7 @@ and exports the result for the game.
 
 Run from anywhere (paths resolve from this file):
   /Applications/Blender.app/Contents/MacOS/Blender --background --factory-startup \
-      --python tools/blender/bake_level.py -- data/levels/test-room.json [--size 1024] [--samples 256]
+      --python tools/blender/bake_level.py -- data/levels/test-room.json [--size 1024] [--samples 512]
 
 Writes public/assets/levels/<name>/:
   level.glb       geometry, one mesh per material, UV0 for textures and UV1 for the lightmap
@@ -88,7 +88,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     parser.add_argument('layout', help='Path to the level layout JSON')
     parser.add_argument('--size', type=int, default=1024, help='Lightmap resolution')
-    parser.add_argument('--samples', type=int, default=256, help='Cycles samples per bake pass')
+    parser.add_argument('--samples', type=int, default=512, help='Cycles samples per bake pass')
     return parser.parse_args(argv)
 
 

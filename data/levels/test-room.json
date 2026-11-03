@@ -9,49 +9,49 @@
   },
   "ambient": { "color": [0.1, 0.14, 0.27] },
   "pieces": [
-    { "shape": "box", "material": "floor", "size": [24, 0.5, 24], "position": [0, -0.25, 0], "tile": 3, "solid": true, "castShadow": false },
+    { "shape": "box", "material": "floor", "size": [24, 0.5, 24], "position": [0, -0.25, 0], "tile": 1.8, "solid": true, "castShadow": false },
 
-    { "shape": "box", "material": "wall", "size": [1, 6, 26], "position": [-12.5, 3, 0], "tile": 2.5, "solid": true },
-    { "shape": "box", "material": "wall", "size": [24, 6, 1], "position": [0, 3, -12.5], "tile": 2.5, "solid": true },
-    { "shape": "box", "material": "wall", "size": [1, 0.8, 24], "position": [12.5, 0.4, 0], "tile": 2.5, "solid": true },
-    { "shape": "box", "material": "wall", "size": [26, 0.8, 1], "position": [0, 0.4, 12.5], "tile": 2.5, "solid": true },
+    { "shape": "box", "material": "wall", "size": [1, 6, 26], "position": [-12.5, 3, 0], "tile": 1.8, "solid": true },
+    { "shape": "box", "material": "wall", "size": [24, 6, 1], "position": [0, 3, -12.5], "tile": 1.8, "solid": true },
+    { "shape": "box", "material": "wall", "size": [1, 0.8, 24], "position": [12.5, 0.4, 0], "tile": 1.8, "solid": true },
+    { "shape": "box", "material": "wall", "size": [26, 0.8, 1], "position": [0, 0.4, 12.5], "tile": 1.8, "solid": true },
 
-    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 6, "position": [-9, 3, -3], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-9, 0.2, -3], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-9, 5.825, -3], "tile": 2 },
+    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 5.7, "position": [-9, 2.85, -3], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-9, 0.2, -3], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-9, 5.825, -3], "tile": 1.5 },
 
-    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 6, "position": [-9, 3, 5], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-9, 0.2, 5], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-9, 5.825, 5], "tile": 2 },
+    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 5.7, "position": [-9, 2.85, 5], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-9, 0.2, 5], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-9, 5.825, 5], "tile": 1.5 },
 
-    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 6, "position": [-3, 3, -9], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-3, 0.2, -9], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-3, 5.825, -9], "tile": 2 },
+    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 5.7, "position": [-3, 2.85, -9], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-3, 0.2, -9], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-3, 5.825, -9], "tile": 1.5 },
 
-    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 6, "position": [5, 3, -9], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [5, 0.2, -9], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [5, 5.825, -9], "tile": 2 },
+    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 5.7, "position": [5, 2.85, -9], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [5, 0.2, -9], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [5, 5.825, -9], "tile": 1.5 },
 
-    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 6, "position": [-4.5, 3, -4.5], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-4.5, 0.2, -4.5], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-4.5, 5.825, -4.5], "tile": 2 },
+    { "shape": "cylinder", "material": "pillar", "radiusTop": 0.6, "radiusBottom": 0.6, "height": 5.7, "position": [-4.5, 2.85, -4.5], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.6, 0.4, 1.6], "position": [-4.5, 0.2, -4.5], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [1.5, 0.35, 1.5], "position": [-4.5, 5.825, -4.5], "tile": 1.5 },
 
-    { "shape": "box", "material": "pillar", "size": [6, 0.2, 6], "position": [0, 0.1, 0], "tile": 2, "solid": true },
-    { "shape": "box", "material": "pillar", "size": [4.4, 0.2, 4.4], "position": [0, 0.3, 0], "tile": 2, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [6, 0.2, 6], "position": [0, 0.1, 0], "tile": 1.5, "solid": true },
+    { "shape": "box", "material": "pillar", "size": [4.4, 0.2, 4.4], "position": [0, 0.3, 0], "tile": 1.5, "solid": true },
 
     { "shape": "cylinder", "material": "iron", "radiusTop": 0.12, "radiusBottom": 0.2, "height": 0.8, "position": [0, 0.8, 0], "solid": true, "castShadow": false },
     { "shape": "cylinder", "material": "iron", "radiusTop": 0.55, "radiusBottom": 0.3, "height": 0.35, "position": [0, 1.35, 0], "solid": true, "castShadow": false },
 
-    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-11.75, 2.6, -1] },
-    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-11.75, 2.6, 8] },
-    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-1, 2.6, -11.75] },
-    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [8, 2.6, -11.75] }
+    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-11.75, 2.1, -1] },
+    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-11.75, 2.1, 8] },
+    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [-1, 2.1, -11.75] },
+    { "shape": "box", "material": "iron", "size": [0.1, 0.5, 0.1], "position": [8, 2.1, -11.75] }
   ],
   "fires": [
-    { "position": [0, 1.5, 0], "size": 1.1, "intensity": 140, "range": 20 },
-    { "position": [-11.63, 2.85, -1], "size": 0.55, "intensity": 70, "range": 14 },
-    { "position": [-11.63, 2.85, 8], "size": 0.55, "intensity": 70, "range": 14 },
-    { "position": [-1, 2.85, -11.63], "size": 0.55, "intensity": 70, "range": 14 },
-    { "position": [8, 2.85, -11.63], "size": 0.55, "intensity": 70, "range": 14 }
+    { "position": [0, 1.5, 0], "size": 0.55, "intensity": 140, "range": 20 },
+    { "position": [-11.63, 2.35, -1], "size": 0.3, "intensity": 70, "range": 14 },
+    { "position": [-11.63, 2.35, 8], "size": 0.3, "intensity": 70, "range": 14 },
+    { "position": [-1, 2.35, -11.63], "size": 0.3, "intensity": 70, "range": 14 },
+    { "position": [8, 2.35, -11.63], "size": 0.3, "intensity": 70, "range": 14 }
   ]
 }

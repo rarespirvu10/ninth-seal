@@ -87,7 +87,7 @@ export class Game {
     const [level, physics, character] = await Promise.all([
       Level.load(testRoomLayout),
       PhysicsWorld.create(),
-      loadCharacter('warrior'),
+      loadCharacter('warrior', { height: 1.8 }),
     ]);
     return new Game(canvas, ui, level, physics, character);
   }
