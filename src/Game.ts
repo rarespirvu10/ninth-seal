@@ -25,6 +25,7 @@ export class Game {
   private readonly player: PlayerController;
   private readonly debug: DebugOverlay;
   private readonly loop: GameLoop;
+  private readonly aim = new THREE.Vector3();
   private elapsed = 0;
 
   private constructor(
@@ -44,6 +45,7 @@ export class Game {
       physics.createCharacter(level.spawnPoint),
       physics.gravity,
       character,
+      this.events,
     );
     this.scene.add(this.player.object);
 
@@ -102,7 +104,8 @@ export class Game {
   }
 
   private fixedUpdate(dt: number): void {
-    this.player.fixedUpdate(dt, this.input, this.isoCamera);
+    const aim = this.isoCamera.pointOnGround(this.input.pointer, this.player.renderPosition.y, this.aim);
+    this.player.fixedUpdate(dt, { input: this.input, basis: this.isoCamera, aim });
     this.physics.step(dt);
     this.player.afterPhysics(dt);
   }
