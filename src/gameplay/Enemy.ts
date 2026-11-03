@@ -4,7 +4,7 @@ import { CharacterAnimator } from '../characters/CharacterAnimator';
 import { CharacterMotor } from '../characters/CharacterMotor';
 import { ClipTimer } from '../characters/ClipTimer';
 import type { EventBus } from '../core/EventBus';
-import type { GameEvents } from '../core/events';
+import type { GameEvents, HitEffects } from '../core/events';
 import { StateMachine, type StateDefinition } from '../core/StateMachine';
 import type { CharacterBody } from '../physics/CharacterBody';
 import { Dissolve } from '../render/Dissolve';
@@ -13,7 +13,7 @@ import type { Combatant } from './CombatSystem';
 import type { EnemyDefinition } from './enemies';
 import { Health } from './Health';
 
-export type EnemyState = 'idle' | 'chase' | 'attack' | 'hit' | 'dead';
+export type EnemyState = 'idle' | 'chase' | 'attack' | 'hit' | 'stunned' | 'dead';
 
 /** What an enemy needs to know about its target. */
 export interface EnemyTarget {
@@ -48,6 +48,8 @@ export class Enemy implements Combatant {
   private actionTimeTo = 0;
   private swing = 0;
   private cooldown = 0;
+  /** Seconds of stun left; the stunned state lasts at least as long as its flinch. */
+  private stunTime = 0;
   /** Seconds since the death fall landed. */
   private corpseTime = 0;
 
@@ -134,6 +136,21 @@ export class Enemy implements Combatant {
         enemy.animator.stopAction();
       },
     },
+    stunned: {
+      enter: (enemy: Enemy) => {
+        enemy.startAction(enemy.flinch);
+      },
+      // Flinch, then hold the dazed end pose until the stun wears off.
+      update: (enemy: Enemy, dt: number) => {
+        enemy.stunTime -= dt;
+        const flinched = enemy.playAction(enemy.flinch, dt);
+        return flinched && enemy.stunTime <= 0 ? ('chase' as const) : undefined;
+      },
+      exit: (enemy: Enemy) => {
+        enemy.stunTime = 0;
+        enemy.animator.stopAction();
+      },
+    },
     dead: {
       enter: (enemy: Enemy) => {
         // A ghost from the first frame: walkable through, and impossible to push.
@@ -187,7 +204,7 @@ export class Enemy implements Combatant {
     return this.object.visible;
   }
 
-  takeHit(damage: number, fromX: number, fromZ: number): void {
+  takeHit(damage: number, fromX: number, fromZ: number, effects: HitEffects = {}): void {
     const taken = this.health.damage(damage);
     if (taken === 0) return;
     this.events.emit('combat:damaged', {
@@ -200,13 +217,27 @@ export class Enemy implements Combatant {
 
     // Turn toward the attacker: staggers push back away from the blow, and it fights back.
     this.motor.face(fromX, fromZ);
+    if (effects.knockback) {
+      const away = this.motor.angleTo(fromX, fromZ) + Math.PI;
+      this.motor.push(Math.sin(away) * effects.knockback, Math.cos(away) * effects.knockback);
+    }
+
     if (this.health.dead) {
       this.machine.transition('dead');
-    } else if (this.machine.state === 'hit') {
-      this.startAction(this.flinch); // Flinch again from the start.
+    } else if (effects.stun) {
+      this.stunTime = Math.max(this.stunTime, effects.stun);
+      if (this.machine.state === 'stunned') this.startAction(this.flinch);
+      else this.machine.transition('stunned');
+    } else if (this.machine.state === 'hit' || this.machine.state === 'stunned') {
+      this.startAction(this.flinch); // Flinch again from the start; a stun keeps running.
     } else {
       this.machine.transition('hit');
     }
+  }
+
+  /** Notices the player from afar (War Cry). */
+  provoke(): void {
+    if (this.machine.state === 'idle') this.machine.transition('chase');
   }
 
   /** Shows the corpse-burning materials (or not), so loading can compile their shader early. */
@@ -222,6 +253,7 @@ export class Enemy implements Combatant {
     this.motor.teleport(this.spawn);
     this.motor.facing = this.spawnFacing;
     this.cooldown = 0;
+    this.stunTime = 0;
     this.machine.transition('idle');
     this.animator.reset();
   }
@@ -241,7 +273,7 @@ export class Enemy implements Combatant {
     this.model.rotation.y = this.motor.facing;
 
     const state = this.machine.state;
-    const acting = state === 'attack' || state === 'hit' || state === 'dead';
+    const acting = state === 'attack' || state === 'hit' || state === 'stunned' || state === 'dead';
     if (acting) {
       this.animator.setActionTime(THREE.MathUtils.lerp(this.actionTimeFrom, this.actionTimeTo, alpha));
     }
