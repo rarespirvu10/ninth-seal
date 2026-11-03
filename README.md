@@ -4,7 +4,7 @@ A dark 3D action RPG that runs in the browser. Choose a class, gear up, and figh
 
 > **Status: early development.** The current build is a look test: one torch-lit room you can walk around in.
 >
-> **[Play in the browser](https://rarespirvu10.github.io/ninth-seal/)** (desktop, keyboard). Press F3 for the debug overlay.
+> **[Play in the browser](https://rarespirvu10.github.io/ninth-seal/)** (desktop, keyboard). Press F3 or ` for the debug overlay.
 
 ## Planned Features
 

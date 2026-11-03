@@ -5,7 +5,7 @@ import { QUALITY_LEVELS, type QualityLevel } from '../render/QualitySettings';
 const REFRESH_INTERVAL = 0.25;
 
 /**
- * Developer overlay toggled with F3: frame timing, renderer stats, GPU, quality controls.
+ * Developer overlay toggled with F3 or `: frame timing, renderer stats, GPU, quality controls.
  * Updates its text a few times per second rather than every frame to keep its own cost negligible.
  */
 export class DebugOverlay {
@@ -37,6 +37,11 @@ export class DebugOverlay {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = level;
+      // Don't take keyboard focus: a focused button would be "clicked" again by Space or Enter
+      // pressed for gameplay.
+      button.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+      });
       button.addEventListener('click', () => {
         onQualityChange(level);
         this.highlightQuality();
@@ -93,7 +98,8 @@ export class DebugOverlay {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
-    if (event.code !== 'F3') return;
+    // F3 on Macs triggers Mission Control unless Fn is held, so backtick works too.
+    if (event.code !== 'F3' && event.code !== 'Backquote') return;
     event.preventDefault();
     this.panel.hidden = !this.panel.hidden;
     if (!this.panel.hidden) this.refresh();
