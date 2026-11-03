@@ -11,7 +11,8 @@ Input folder:
 
 Writes public/assets/characters/:
   <name>.glb   mesh, skeleton, every clip, textures resized to 1024 px
-  <name>.json  per-clip ground speed (so the game can match playback to movement) and height
+  <name>.json  height, and per clip: ground speed for walk/run (so the game can match playback
+               to movement) or the root motion removed from it (see extract_root_motion)
 """
 
 import argparse
@@ -30,6 +31,13 @@ OUTPUT_DIR = os.path.join(ROOT, 'public', 'assets', 'characters')
 TEXTURE_SIZE = 1024
 FEET = ('mixamorig:LeftFoot', 'mixamorig:RightFoot')
 HIPS = 'mixamorig:Hips'
+# Looping clips whose travel the game drives itself; their playback rate follows movement speed.
+LOCOMOTION = {'walk', 'run'}
+# Mixamo characters face -Y in Blender, so their right-hand side is -X.
+FORWARD = Vector((0, -1, 0))
+RIGHT = Vector((-1, 0, 0))
+# Clips whose hips travel less than this are treated as staying in place.
+ROOT_MOTION_THRESHOLD = 0.05
 
 
 def main():
@@ -50,12 +58,16 @@ def main():
     metadata = {'height': round(character_height(), 3), 'clips': {}}
     for clip, action in clips.items():
         info = {'duration': round((action.frame_range[1] - action.frame_range[0]) / fps, 4)}
-        if clip != 'idle':
+        if clip in LOCOMOTION:
             info['groundSpeed'] = round(ground_speed(armature, action, fps), 3)
             if info['groundSpeed'] < 0:
                 # Negative speed: the clip moves backward. The game still plays it correctly
                 # (in reverse), but a forward version of the animation will look more natural.
                 print(f'WARNING: clip "{clip}" moves backward (ground speed {info["groundSpeed"]} m/s)')
+        elif clip != 'idle':
+            motion = extract_root_motion(armature, action, fps)
+            if motion:
+                info['rootMotion'] = motion
         metadata['clips'][clip] = info
 
     push_to_nla(armature, clips)
@@ -144,6 +156,62 @@ def ground_speed(armature, action, fps):
                 speeds.append((a - b) * fps)
     assign(armature, None)
     return float(np.median(speeds)) if speeds else 0.0
+
+
+def hips_position(armature, frame):
+    """World position of the hips at a (possibly fractional) frame."""
+    whole = math.floor(frame)
+    bpy.context.scene.frame_set(whole, subframe=frame - whole)
+    return armature.matrix_world @ armature.pose.bones[HIPS].head
+
+
+def fcurves_of(action):
+    # Blender 5 removed Action.fcurves; curves live in the channelbag of the action's slot.
+    return action.layers[0].strips[0].channelbag(action.slots[0]).fcurves
+
+
+def extract_root_motion(armature, action, fps):
+    """
+    Moves the hips' horizontal travel out of a clip (attack lunges, falling back on death) and
+    returns it as a curve. The game then moves the character by that curve through physics, so a
+    lunge stays attached to the collision body and stops at walls instead of passing through them.
+
+    Returns {fps, forward, right}: cumulative displacement in meters, one sample per frame,
+    in the character's own frame of reference. Returns None if the clip barely moves.
+    """
+    assign(armature, action)
+    start, end = action.frame_range
+    origin = hips_position(armature, start)
+
+    forward, right = [], []
+    for frame in range(int(start), int(end) + 1):
+        offset = hips_position(armature, frame) - origin
+        forward.append(round(offset.dot(FORWARD), 3))
+        right.append(round(offset.dot(RIGHT), 3))
+    if max(math.hypot(f, r) for f, r in zip(forward, right)) < ROOT_MOTION_THRESHOLD:
+        assign(armature, None)
+        return None
+
+    # Hips keys are in the hips' rest space; convert world-space corrections into it.
+    to_local = (armature.matrix_world.to_3x3() @ armature.data.bones[HIPS].matrix_local.to_3x3()).inverted()
+    curves = {fc.array_index: fc for fc in fcurves_of(action) if fc.data_path == f'pose.bones["{HIPS}"].location'}
+    keyed_frames = sorted({key.co.x for curve in curves.values() for key in curve.keyframe_points})
+
+    # Measure every correction before editing any key, so edits don't affect later measurements.
+    corrections = {}
+    for frame in keyed_frames:
+        offset = hips_position(armature, frame) - origin
+        corrections[frame] = to_local @ Vector((-offset.x, -offset.y, 0.0))
+    for index, curve in curves.items():
+        for key in curve.keyframe_points:
+            delta = corrections[key.co.x][index]
+            key.co.y += delta
+            key.handle_left.y += delta
+            key.handle_right.y += delta
+        curve.update()
+
+    assign(armature, None)
+    return {'fps': fps, 'forward': forward, 'right': right}
 
 
 # --- Animation and materials -------------------------------------------------------------------
