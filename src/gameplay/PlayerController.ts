@@ -36,6 +36,9 @@ const WALK_SPEED = 1.4;
 const TURN_SHARPNESS = 14;
 /** After a flinch, further hits only deal damage for this long, so enemies can't stun-lock you. */
 const FLINCH_IMMUNITY = 1.2;
+/** How far before and after a hit window the blade counts as swinging (clip seconds), for trails. */
+const SWING_LEAD = 0.12;
+const SWING_TAIL = 0.06;
 /**
  * Soft light that follows the hero, as in Diablo: keeps the character readable in dark rooms
  * and leaves a pool of light around them. Placed toward the camera so it lights the front.
@@ -65,6 +68,7 @@ export class PlayerController implements Combatant {
   private actionTimeTo = 0;
   private swing = 0;
   private sinceFlinch = Infinity;
+  private swinging = false;
 
   constructor(
     body: CharacterBody,
@@ -160,6 +164,11 @@ export class PlayerController implements Combatant {
     return this.motor.speed;
   }
 
+  /** True while the blade sweeps through a swing: just before its hit window until just after. */
+  get isSwinging(): boolean {
+    return this.swinging && this.machine.state === 'attack';
+  }
+
   takeHit(damage: number, fromX: number, fromZ: number): void {
     const taken = this.health.damage(damage);
     if (taken === 0) return;
@@ -250,6 +259,7 @@ export class PlayerController implements Combatant {
     }
     this.actionTimeFrom = frame.previousTime;
     this.actionTimeTo = frame.time;
+    this.swinging = frame.time >= frame.step.hit[0] - SWING_LEAD && frame.time <= frame.step.hit[1] + SWING_TAIL;
     this.motor.moveByRootMotion(
       this.character.rootMotion(frame.step.clip),
       frame.previousTime,

@@ -16,6 +16,7 @@ import { Level } from './levels/Level';
 import { PhysicsWorld } from './physics/PhysicsWorld';
 import { applyEnvironment, createAmbientEnvironment } from './render/environment';
 import { GameRenderer } from './render/GameRenderer';
+import { WeaponTrail } from './render/effects/WeaponTrail';
 import { IsometricCamera } from './render/IsometricCamera';
 import { loadQualityPreference, saveQualityPreference } from './render/qualityPreference';
 import { DamageNumbers } from './ui/DamageNumbers';
@@ -38,6 +39,7 @@ export class Game {
   private readonly debug: DebugOverlay;
   private readonly hud: Hud;
   private readonly damageNumbers: DamageNumbers;
+  private readonly swordTrail: WeaponTrail;
   private readonly loop: GameLoop;
   private readonly aim = new THREE.Vector3();
   private elapsed = 0;
@@ -50,6 +52,7 @@ export class Game {
     private readonly level: Level,
     private readonly physics: PhysicsWorld,
     character: CharacterAsset,
+    sword: THREE.Object3D,
     enemyCharacters: ReadonlyMap<string, CharacterAsset>,
   ) {
     this.input = new Input(canvas);
@@ -65,6 +68,12 @@ export class Game {
       this.events,
     );
     this.scene.add(this.player.object);
+    // Traced between the blade's base and tip (the sword's local +Y axis runs along the blade).
+    this.swordTrail = new WeaponTrail(sword, {
+      base: new THREE.Vector3(0, 0.2, 0),
+      tip: new THREE.Vector3(0, 0.87, 0),
+    });
+    this.scene.add(this.swordTrail.mesh);
 
     level.enemySpawns.forEach((spawn, index) => {
       const definition = ENEMY_TYPES[spawn.type];
@@ -155,9 +164,10 @@ export class Game {
       loadWeaponModels(),
       loadCharacter(SKELETON.character, { height: SKELETON.height }),
     ]);
-    attachToBone(character.model, weapons.create('sword'), MIXAMO_MOUNTS.mainHand);
+    const sword = weapons.create('sword');
+    attachToBone(character.model, sword, MIXAMO_MOUNTS.mainHand);
     attachToBone(character.model, weapons.create('shield'), MIXAMO_MOUNTS.offHandShield);
-    return new Game(canvas, ui, level, physics, character, new Map([[SKELETON.character, skeleton]]));
+    return new Game(canvas, ui, level, physics, character, sword, new Map([[SKELETON.character, skeleton]]));
   }
 
   /** Prepares GPU resources while the loading screen is still up. */
@@ -194,6 +204,7 @@ export class Game {
     this.elapsed += dt;
     this.player.render(dt, alpha);
     for (const enemy of this.enemies) enemy.render(dt, alpha);
+    this.swordTrail.update(dt, this.player.isSwinging);
     this.isoCamera.update(dt, this.player.renderPosition);
     this.level.update(this.elapsed, this.isoCamera.camera, this.player.renderPosition);
     this.renderer.render(dt);
