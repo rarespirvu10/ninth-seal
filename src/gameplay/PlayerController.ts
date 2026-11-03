@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { CharacterAsset } from '../characters/Character';
+import { LocomotionAnimator } from '../characters/LocomotionAnimator';
 import type { Input } from '../core/Input';
 import type { CharacterBody } from '../physics/CharacterBody';
 
@@ -9,33 +11,67 @@ export interface MovementBasis {
   right: THREE.Vector3;
 }
 
-const MOVE_SPEED = 5;
+const RUN_SPEED = 4.5;
+/**
+ * Soft light that follows the hero, as in Diablo: keeps the character readable in dark rooms
+ * and leaves a pool of light around them. Placed toward the camera so it lights the front.
+ */
+const HERO_LIGHT = { color: 0xffe2c8, intensity: 30, range: 9, offset: new THREE.Vector3(1.2, 3.2, 1.2) };
+const WALK_SPEED = 1.4;
 const TURN_SHARPNESS = 14;
+/** Smoothing for the measured speed that drives animation, so single-step jitter doesn't flicker clips. */
+const SPEED_SHARPNESS = 15;
 
 /**
  * Turns input into character movement on the fixed physics step, and smooths the result
  * for rendering by interpolating between the last two physics positions.
  */
 export class PlayerController {
+  /** Follows the character's position; holds the hero light, which must not turn with the model. */
   readonly object = new THREE.Group();
   /** Interpolated feet position for this frame. */
   readonly renderPosition = new THREE.Vector3();
 
+  private readonly model: THREE.Object3D;
+  private readonly animator: LocomotionAnimator;
   private readonly previous = new THREE.Vector3();
   private readonly current = new THREE.Vector3();
   private readonly velocity = new THREE.Vector3();
   private readonly step = new THREE.Vector3();
   private facing = 0;
+  /** Measured horizontal speed after collisions, in m/s. */
+  private groundSpeed = 0;
 
   constructor(
     private readonly body: CharacterBody,
     private readonly gravity: number,
+    character: CharacterAsset,
   ) {
     body.getFeetPosition(this.current);
     this.previous.copy(this.current);
     this.renderPosition.copy(this.current);
-    this.object.add(createPlaceholderMesh(body.radius, body.height));
+
+    this.model = character.model;
+    this.object.add(this.model);
     this.object.position.copy(this.current);
+
+    const light = new THREE.PointLight(HERO_LIGHT.color, HERO_LIGHT.intensity, HERO_LIGHT.range, 2);
+    light.position.copy(HERO_LIGHT.offset);
+    this.object.add(light);
+    this.animator = new LocomotionAnimator(
+      character.model,
+      { idle: character.clip('idle'), walk: character.clip('walk'), run: character.clip('run') },
+      { walk: character.groundSpeed('walk'), run: character.groundSpeed('run') },
+      { walk: WALK_SPEED, run: RUN_SPEED },
+    );
+  }
+
+  get animationState(): string {
+    return this.animator.state;
+  }
+
+  get speed(): number {
+    return this.groundSpeed;
   }
 
   fixedUpdate(dt: number, input: Input, basis: MovementBasis): void {
@@ -46,8 +82,10 @@ export class PlayerController {
       .addScaledVector(basis.right, axis.x);
     if (this.step.lengthSq() > 0) this.step.normalize();
 
-    this.velocity.x = this.step.x * MOVE_SPEED;
-    this.velocity.z = this.step.z * MOVE_SPEED;
+    const walking = input.isDown('ShiftLeft') || input.isDown('ShiftRight');
+    const speed = walking ? WALK_SPEED : RUN_SPEED;
+    this.velocity.x = this.step.x * speed;
+    this.velocity.z = this.step.z * speed;
     // Keep a small downward push while grounded so ground snapping stays engaged.
     this.velocity.y = this.body.grounded ? -1 : this.velocity.y + this.gravity * dt;
 
@@ -60,16 +98,21 @@ export class PlayerController {
   }
 
   /** Called after the physics step to record the new position. */
-  afterPhysics(): void {
+  afterPhysics(dt: number): void {
     this.previous.copy(this.current);
     this.body.getFeetPosition(this.current);
+
+    // Speed actually achieved after collisions: walking into a wall measures ~0 and plays idle.
+    const moved = Math.hypot(this.current.x - this.previous.x, this.current.z - this.previous.z);
+    this.groundSpeed += (moved / dt - this.groundSpeed) * (1 - Math.exp(-SPEED_SHARPNESS * dt));
   }
 
   /** Called once per rendered frame. `alpha` is the fraction between the last two physics steps. */
-  render(alpha: number): void {
+  render(dt: number, alpha: number): void {
     this.renderPosition.lerpVectors(this.previous, this.current, alpha);
     this.object.position.copy(this.renderPosition);
-    this.object.rotation.y = this.facing;
+    this.model.rotation.y = this.facing;
+    this.animator.update(dt, this.groundSpeed);
   }
 }
 
@@ -77,31 +120,4 @@ export class PlayerController {
 function dampAngle(current: number, target: number, sharpness: number, dt: number): number {
   const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
   return current + delta * (1 - Math.exp(-sharpness * dt));
-}
-
-/** Stand-in for the character model: a capsule with a visor showing which way it faces. */
-function createPlaceholderMesh(radius: number, height: number): THREE.Group {
-  const group = new THREE.Group();
-  const armor = new THREE.MeshStandardMaterial({ color: 0x8c9099, metalness: 0.75, roughness: 0.35 });
-  const visor = new THREE.MeshStandardMaterial({
-    color: 0x111111,
-    emissive: 0x66ccff,
-    emissiveIntensity: 3,
-  });
-
-  const capsule = new THREE.Mesh(
-    new THREE.CapsuleGeometry(radius, height - radius * 2, 8, 16),
-    armor,
-  );
-  capsule.position.y = height / 2;
-
-  const eye = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.2, 0.08, 0.1), visor);
-  eye.position.set(0, height - radius * 1.1, radius * 0.9);
-
-  for (const mesh of [capsule, eye]) {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    group.add(mesh);
-  }
-  return group;
 }

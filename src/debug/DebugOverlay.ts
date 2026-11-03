@@ -4,6 +4,13 @@ import { QUALITY_LEVELS, type QualityLevel } from '../render/QualitySettings';
 
 const REFRESH_INTERVAL = 0.25;
 
+/** What the overlay shows about the player. */
+export interface DebugPlayerInfo {
+  readonly renderPosition: THREE.Vector3;
+  readonly speed: number;
+  readonly animationState: string;
+}
+
 /**
  * Developer overlay toggled with F3 or `: frame timing, renderer stats, GPU, quality controls.
  * Updates its text a few times per second rather than every frame to keep its own cost negligible.
@@ -20,7 +27,7 @@ export class DebugOverlay {
   constructor(
     root: HTMLElement,
     private readonly renderer: GameRenderer,
-    private readonly playerPosition: THREE.Vector3,
+    private readonly player: DebugPlayerInfo,
     onQualityChange: (level: QualityLevel) => void,
   ) {
     this.panel = document.createElement('section');
@@ -77,7 +84,7 @@ export class DebugOverlay {
     const { calls, triangles } = this.renderer.renderer.info.render;
     const fps = this.frames / this.sinceRefresh;
     const average = (this.sinceRefresh / this.frames) * 1000;
-    const { x, y, z } = this.playerPosition;
+    const { x, y, z } = this.player.renderPosition;
 
     this.stats.textContent = [
       `FPS        ${fps.toFixed(0)}`,
@@ -88,6 +95,7 @@ export class DebugOverlay {
       `Res scale  ${(this.renderer.resolutionScale * 100).toFixed(0)}%`,
       `GPU        ${this.renderer.gpu ?? 'unknown'}`,
       `Player     ${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}`,
+      `Movement   ${this.player.animationState}, ${this.player.speed.toFixed(1)} m/s`,
     ].join('\n');
   }
 

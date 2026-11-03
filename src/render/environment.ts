@@ -42,13 +42,18 @@ export function createAmbientEnvironment(
 }
 
 /** Applies an environment map to every standard material under `root`. */
-export function applyEnvironment(root: THREE.Object3D, environment: THREE.Texture): void {
+export function applyEnvironment(
+  root: THREE.Object3D,
+  environment: THREE.Texture,
+  intensity = 1,
+): void {
   root.traverse((node) => {
     if (!(node instanceof THREE.Mesh)) return;
     const materials = Array.isArray(node.material) ? node.material : [node.material];
     for (const material of materials) {
       if (material instanceof THREE.MeshStandardMaterial) {
         material.envMap = environment;
+        material.envMapIntensity = intensity;
         material.needsUpdate = true;
       }
     }
