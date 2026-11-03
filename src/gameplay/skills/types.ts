@@ -30,7 +30,7 @@ export interface MeleeSpec {
 export interface SkillHost {
   readonly motor: CharacterMotor;
   /** Ground point under the cursor, if any. */
-  readonly aim: THREE.Vector3 | null;
+  aimPoint(): THREE.Vector3 | null;
   /** Turns toward the cursor instantly. */
   faceAim(): void;
   /** Starts an action clip; its pose then follows `poseAction`. */

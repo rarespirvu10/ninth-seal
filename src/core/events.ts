@@ -57,4 +57,6 @@ export interface GameEvents {
   };
   'combat:died': { target: CombatantId };
   'player:respawned': undefined;
+  /** A skill key was pressed but the skill couldn't be used. */
+  'skill:denied': { slot: number; reason: 'cooldown' | 'mana' };
 }

@@ -11,6 +11,10 @@ import type { CharacterBody } from '../physics/CharacterBody';
 import { AttackSequence } from './AttackSequence';
 import type { Combatant } from './CombatSystem';
 import { Health } from './Health';
+import { Mana } from './Mana';
+import { SkillSlots } from './skills/SkillSlots';
+import type { Skill, SkillAction, SkillHost } from './skills/types';
+import { WARRIOR_SKILLS } from './skills/warrior';
 import { WARRIOR_ATTACK_RATE, WARRIOR_COMBO } from './warriorAttacks';
 
 export interface MovementBasis {
@@ -28,9 +32,21 @@ export interface PlayerIntent {
   aim: THREE.Vector3 | null;
 }
 
-type PlayerState = 'move' | 'attack' | 'hit' | 'dead';
+/** World services the player's skills use, provided by the game. */
+export interface PlayerServices {
+  shockwave(center: THREE.Vector3, radius: number, color: THREE.ColorRepresentation): void;
+  shake(amount: number): void;
+  enemiesNear(x: number, z: number, radius: number): readonly Combatant[];
+}
+
+type PlayerState = 'move' | 'attack' | 'skill' | 'hit' | 'dead';
+
+/** Keys for skill slots 1 to 4. */
+const SKILL_KEYS = ['Digit1', 'Digit2', 'Digit3', 'Digit4'] as const;
 
 const MAX_HEALTH = 100;
+const MAX_MANA = 100;
+const MANA_REGEN = 6;
 const RUN_SPEED = 4.5;
 const WALK_SPEED = 1.4;
 const TURN_SHARPNESS = 14;
@@ -46,7 +62,7 @@ const SWING_TAIL = 0.06;
 const HERO_LIGHT = { color: 0xffe2c8, intensity: 30, range: 9, offset: new THREE.Vector3(1.2, 3.2, 1.2) };
 
 /**
- * The player character: a state machine over moving, attacking, flinching, and dying.
+ * The player character: a state machine over moving, attacking, using skills, flinching, and dying.
  * Gameplay runs on the fixed physics step; rendering interpolates between the last two steps.
  */
 export class PlayerController implements Combatant {
@@ -54,6 +70,8 @@ export class PlayerController implements Combatant {
   /** Follows the character's position; holds the hero light, which must not turn with the model. */
   readonly object = new THREE.Group();
   readonly health = new Health(MAX_HEALTH);
+  readonly mana = new Mana(MAX_MANA, MANA_REGEN);
+  readonly skills = new SkillSlots(WARRIOR_SKILLS);
 
   private readonly motor: CharacterMotor;
   private readonly machine: StateMachine<PlayerState, PlayerController>;
@@ -69,12 +87,18 @@ export class PlayerController implements Combatant {
   private swing = 0;
   private sinceFlinch = Infinity;
   private swinging = false;
+  private readonly host: SkillHost;
+  private pendingSkill: Skill | null = null;
+  private skillAction: SkillAction | null = null;
+  private empowerMultiplier = 1;
+  private empowerTime = 0;
 
   constructor(
     body: CharacterBody,
     gravity: number,
     private readonly character: CharacterAsset,
     private readonly events: EventBus<GameEvents>,
+    services: PlayerServices,
   ) {
     this.motor = new CharacterMotor(body, gravity);
     this.model = character.model;
@@ -98,6 +122,7 @@ export class PlayerController implements Combatant {
         move: {
           update: (player, dt) => {
             player.move(dt);
+            if (player.tryCastSkill()) return 'skill';
             return player.wantsToAttack() ? 'attack' : undefined;
           },
         },
@@ -105,8 +130,22 @@ export class PlayerController implements Combatant {
           enter: (player) => {
             player.attacks.start();
           },
-          update: (player, dt) => player.attack(dt),
+          // A skill can cut a combo short at any point, for responsiveness.
+          update: (player, dt) => (player.tryCastSkill() ? 'skill' : player.attack(dt)),
           exit: (player) => {
+            player.swinging = false;
+            player.animator.stopAction();
+          },
+        },
+        skill: {
+          enter: (player) => {
+            player.skillAction = player.pendingSkill?.begin(player.host) ?? null;
+            player.pendingSkill = null;
+          },
+          update: (player, dt) => (!player.skillAction || player.skillAction.update(dt) ? 'move' : undefined),
+          exit: (player) => {
+            player.skillAction = null;
+            player.swinging = false;
             player.animator.stopAction();
           },
         },
@@ -135,6 +174,65 @@ export class PlayerController implements Combatant {
       },
       'move',
     );
+
+    this.host = {
+      motor: this.motor,
+      aimPoint: () => this.intent?.aim ?? null,
+      faceAim: () => {
+        const aim = this.intent?.aim;
+        if (aim) this.motor.face(aim.x, aim.z);
+      },
+      playAction: (clip, time) => {
+        this.actionTimeFrom = this.actionTimeTo = time;
+        this.animator.playAction(this.character.clip(clip), time);
+      },
+      poseAction: (from, to) => {
+        this.actionTimeFrom = from;
+        this.actionTimeTo = to;
+      },
+      moveByRootMotion: (clip, from, to, dt) => {
+        this.motor.moveByRootMotion(this.character.rootMotion(clip), from, to, dt);
+      },
+      newSwing: () => ++this.swing,
+      strike: (swing, spec) => {
+        this.events.emit('combat:strike', {
+          attacker: 'player',
+          swing,
+          origin: this.motor.position,
+          facing: this.motor.facing,
+          range: spec.range,
+          arc: spec.arc,
+          damage: spec.damage * this.damageMultiplier,
+          ...(spec.effects ? { effects: spec.effects } : {}),
+        });
+      },
+      area: (center, radius, damage, effects) => {
+        this.events.emit('combat:area', {
+          attacker: 'player',
+          origin: center,
+          radius,
+          damage: damage * this.damageMultiplier,
+          ...(effects ? { effects } : {}),
+        });
+      },
+      provoke: (radius) => {
+        this.events.emit('combat:provoke', { origin: this.motor.position, radius });
+      },
+      empower: (multiplier, duration) => {
+        this.empowerMultiplier = multiplier;
+        this.empowerTime = duration;
+      },
+      setSwinging: (swinging) => {
+        this.swinging = swinging;
+      },
+      shockwave: (center, radius, color) => {
+        services.shockwave(center, radius, color);
+      },
+      shake: (amount) => {
+        services.shake(amount);
+      },
+      enemiesNear: (x, z, radius) => services.enemiesNear(x, z, radius),
+    };
   }
 
   get position(): THREE.Vector3 {
@@ -166,7 +264,18 @@ export class PlayerController implements Combatant {
 
   /** True while the blade sweeps through a swing: just before its hit window until just after. */
   get isSwinging(): boolean {
-    return this.swinging && this.machine.state === 'attack';
+    const state = this.machine.state;
+    return this.swinging && (state === 'attack' || state === 'skill');
+  }
+
+  /** Damage multiplier from buffs such as War Cry. */
+  get damageMultiplier(): number {
+    return this.empowerTime > 0 ? this.empowerMultiplier : 1;
+  }
+
+  /** Seconds left on the current damage buff, for the HUD. */
+  get empowerRemaining(): number {
+    return this.empowerTime;
   }
 
   takeHit(damage: number, fromX: number, fromZ: number): void {
@@ -183,7 +292,8 @@ export class PlayerController implements Combatant {
     if (this.health.dead) {
       this.motor.face(fromX, fromZ);
       this.machine.transition('dead');
-    } else if (this.sinceFlinch >= FLINCH_IMMUNITY) {
+    } else if (this.machine.state !== 'skill' && this.sinceFlinch >= FLINCH_IMMUNITY) {
+      // Skills can't be interrupted: being knocked out of a leap mid-air feels unfair.
       this.motor.face(fromX, fromZ);
       this.machine.transition('hit');
     }
@@ -191,6 +301,9 @@ export class PlayerController implements Combatant {
 
   respawn(feet: THREE.Vector3): void {
     this.health.reset();
+    this.mana.reset();
+    this.skills.reset();
+    this.empowerTime = 0;
     this.motor.setGhost(false);
     this.motor.teleport(feet);
     this.motor.facing = 0;
@@ -203,6 +316,11 @@ export class PlayerController implements Combatant {
   fixedUpdate(dt: number, intent: PlayerIntent): void {
     this.intent = intent;
     this.sinceFlinch += dt;
+    this.empowerTime = Math.max(0, this.empowerTime - dt);
+    if (this.alive) {
+      this.mana.update(dt);
+      this.skills.update(dt);
+    }
     this.machine.update(dt);
   }
 
@@ -275,7 +393,7 @@ export class PlayerController implements Combatant {
         facing: this.motor.facing,
         range: frame.step.range,
         arc: frame.step.arc,
-        damage: frame.step.damage,
+        damage: frame.step.damage * this.damageMultiplier,
       });
     }
     return frame.finished ? 'move' : undefined;
@@ -296,6 +414,32 @@ export class PlayerController implements Combatant {
     this.actionTimeTo = timer.time;
     this.motor.moveByRootMotion(this.character.rootMotion(timer.clip), timer.previous, timer.time, dt);
     return finished;
+  }
+
+  /**
+   * Uses the skill whose key was pressed, if it's off cooldown and affordable.
+   * Refusals are announced so the HUD can flash the slot.
+   */
+  private tryCastSkill(): boolean {
+    const { input } = this.requireIntent();
+    for (let slot = 0; slot < SKILL_KEYS.length; slot++) {
+      const key = SKILL_KEYS[slot];
+      if (!key || !input.consumeKeyPress(key)) continue;
+      const skill = this.skills.skill(slot);
+      if (!skill) continue;
+      if (!this.skills.ready(slot)) {
+        this.events.emit('skill:denied', { slot, reason: 'cooldown' });
+        continue;
+      }
+      if (!this.mana.spend(skill.definition.manaCost)) {
+        this.events.emit('skill:denied', { slot, reason: 'mana' });
+        continue;
+      }
+      this.skills.trigger(slot);
+      this.pendingSkill = skill;
+      return true;
+    }
+    return false;
   }
 
   private wantsToAttack(): boolean {
