@@ -1,0 +1,38 @@
+{
+  "name": "ninth-seal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Beneath the Ninth Seal: a dark 3D action RPG in the browser.",
+  "author": "Rares Pirvu <rarespirvu10@gmail.com>",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fetch:textures": "node tools/fetch-textures.mjs"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "n8ao": "^2.0.1",
+    "postprocessing": "^6.39.6",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/three": "^0.187.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,97 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #e8e0d0;
+  font-family: system-ui, sans-serif;
+}
+
+#game {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.debug-panel {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 10px 12px;
+  background: rgb(0 0 0 / 70%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  pointer-events: auto;
+  font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace;
+}
+
+.debug-panel pre {
+  margin: 0 0 8px;
+  font: inherit;
+  white-space: pre;
+}
+
+.debug-quality {
+  display: flex;
+  gap: 4px;
+}
+
+.debug-quality button {
+  padding: 3px 8px;
+  font: inherit;
+  text-transform: capitalize;
+  color: inherit;
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 15%);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.debug-quality button[aria-pressed='true'] {
+  background: #d8b878;
+  border-color: #d8b878;
+  color: #111;
+}
+
+.controls-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #050407;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.08em;
+}
+
+#loading h1 {
+  margin: 0 0 0.5rem;
+  font-weight: normal;
+  color: #d8b878;
+}
+
+#loading p {
+  margin: 0;
+  opacity: 0.6;
+}
