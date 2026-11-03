@@ -21,6 +21,11 @@ import { loadQualityPreference, saveQualityPreference } from './render/qualityPr
 import { DamageNumbers } from './ui/DamageNumbers';
 import { Hud } from './ui/Hud';
 
+/** Hit-stop durations, in seconds, when the player's blow lands. */
+const HIT_STOP = 0.06;
+const HIT_STOP_HEAVY = 0.11;
+const HEAVY_HIT = 30;
+
 /** Composition root: creates the systems and wires them together. */
 export class Game {
   private readonly events = new EventBus<GameEvents>();
@@ -36,6 +41,8 @@ export class Game {
   private readonly loop: GameLoop;
   private readonly aim = new THREE.Vector3();
   private elapsed = 0;
+  /** Seconds of simulation pause left from the last landed blow. */
+  private hitStop = 0;
 
   private constructor(
     canvas: HTMLCanvasElement,
@@ -79,6 +86,18 @@ export class Game {
     });
     // Lives as long as its event subscription: it resolves strikes announced on the bus.
     new CombatSystem(this.events, this.player, this.enemies);
+
+    // Game feel: landing a blow freezes the action for a few frames (hit-stop), heavy blows and
+    // getting hit shake the camera.
+    this.events.on('combat:damaged', ({ target, amount }) => {
+      const heavy = amount >= HEAVY_HIT;
+      if (target === 'player') {
+        this.isoCamera.shake(0.45);
+      } else {
+        this.hitStop = Math.max(this.hitStop, heavy ? HIT_STOP_HEAVY : HIT_STOP);
+        if (heavy) this.isoCamera.shake(0.35);
+      }
+    });
 
     // Subscribe before the renderer exists: it announces the initial quality from its constructor.
     this.events.on('quality:changed', ({ settings }) => {
@@ -158,6 +177,11 @@ export class Game {
   }
 
   private fixedUpdate(dt: number): void {
+    if (this.hitStop > 0) {
+      // Frozen: the world holds its pose; input stays queued for when it resumes.
+      this.hitStop -= dt;
+      return;
+    }
     const aim = this.isoCamera.pointOnGround(this.input.pointer, this.player.renderPosition.y, this.aim);
     this.player.fixedUpdate(dt, { input: this.input, basis: this.isoCamera, aim });
     for (const enemy of this.enemies) enemy.fixedUpdate(dt);
