@@ -2,7 +2,7 @@
 
 A dark 3D action RPG that runs in the browser. Choose a class, gear up, and fight through a ruined temple to the creature sealed beneath it.
 
-> **Status: early development.** The current build is a look test: an animated warrior in one torch-lit room, with baked lighting.
+> **Status: early development.** The current build is a combat test: a warrior fighting skeletons in one torch-lit room.
 >
 > **[Play in the browser](https://rarespirvu10.github.io/ninth-seal/)** (desktop, keyboard). Press F3 or ` for the debug overlay.
 
