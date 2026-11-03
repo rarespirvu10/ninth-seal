@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "fetch:textures": "node tools/fetch-textures.mjs",
     "bake:level": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python tools/blender/bake_level.py --",
-    "convert:character": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python tools/blender/convert_character.py --"
+    "convert:character": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python tools/blender/convert_character.py --",
+    "build:weapons": "${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender} --background --factory-startup --python tools/blender/build_weapons.py"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",
