@@ -120,6 +120,35 @@ body {
   transition: transform 0.2s ease-out;
 }
 
+.damage-numbers {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.damage-number {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font: 700 20px/1 Georgia, 'Times New Roman', serif;
+  color: #f6dc8c;
+  text-shadow:
+    0 0 6px rgb(0 0 0 / 90%),
+    0 2px 2px #000;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
+.damage-number.heavy {
+  font-size: 28px;
+  color: #ffb648;
+}
+
+.damage-number.taken {
+  font-size: 18px;
+  color: #ff5a4a;
+}
+
 .hit-flash {
   position: absolute;
   inset: 0;

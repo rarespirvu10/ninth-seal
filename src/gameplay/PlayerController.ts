@@ -168,6 +168,7 @@ export class PlayerController implements Combatant {
       amount: taken,
       health: this.health.current,
       maxHealth: this.health.max,
+      position: this.motor.position,
     });
 
     if (this.health.dead) {

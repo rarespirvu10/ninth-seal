@@ -30,6 +30,8 @@ export interface GameEvents {
     amount: number;
     health: number;
     maxHealth: number;
+    /** The target's feet. Reused between events: read it during the handler. */
+    position: THREE.Vector3;
   };
   'combat:died': { target: CombatantId };
   'player:respawned': undefined;

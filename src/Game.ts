@@ -18,6 +18,7 @@ import { applyEnvironment, createAmbientEnvironment } from './render/environment
 import { GameRenderer } from './render/GameRenderer';
 import { IsometricCamera } from './render/IsometricCamera';
 import { loadQualityPreference, saveQualityPreference } from './render/qualityPreference';
+import { DamageNumbers } from './ui/DamageNumbers';
 import { Hud } from './ui/Hud';
 
 /** Composition root: creates the systems and wires them together. */
@@ -31,6 +32,7 @@ export class Game {
   private readonly enemies: Enemy[] = [];
   private readonly debug: DebugOverlay;
   private readonly hud: Hud;
+  private readonly damageNumbers: DamageNumbers;
   private readonly loop: GameLoop;
   private readonly aim = new THREE.Vector3();
   private elapsed = 0;
@@ -100,10 +102,19 @@ export class Game {
     this.hud = new Hud(ui, this.events, this.player, this.enemies, () => {
       this.restart();
     });
-    this.debug = new DebugOverlay(ui, this.renderer, this.player, this.enemies, this.isoCamera.camera, (quality) => {
-      this.renderer.setQuality(quality);
-      saveQualityPreference(quality);
-    });
+    this.damageNumbers = new DamageNumbers(ui, this.events);
+    this.debug = new DebugOverlay(
+      ui,
+      this.renderer,
+      this.player,
+      this.enemies,
+      [{ name: 'damage numbers', pool: this.damageNumbers.pool }],
+      this.isoCamera.camera,
+      (quality) => {
+        this.renderer.setQuality(quality);
+        saveQualityPreference(quality);
+      },
+    );
 
     this.isoCamera.snapTo(level.spawnPoint);
 
@@ -163,6 +174,7 @@ export class Game {
     this.level.update(this.elapsed, this.isoCamera.camera, this.player.renderPosition);
     this.renderer.render(dt);
     this.hud.update(this.isoCamera.camera);
+    this.damageNumbers.update(dt, this.isoCamera.camera);
     this.debug.update(dt);
   }
 }

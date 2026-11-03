@@ -195,6 +195,7 @@ export class Enemy implements Combatant {
       amount: taken,
       health: this.health.current,
       maxHealth: this.health.max,
+      position: this.motor.position,
     });
 
     // Turn toward the attacker: staggers push back away from the blow, and it fights back.
