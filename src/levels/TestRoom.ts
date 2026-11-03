@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { PhysicsWorld } from '../physics/PhysicsWorld';
 import { Fire } from '../render/effects/Fire';
 import { createTiledBox, createTiledCylinder } from '../render/geometry';
 import { loadPbrMaterial, setAnisotropy } from '../render/materials';
@@ -27,6 +28,8 @@ export class TestRoom {
 
   /** Ordered by shadow priority: the first N cast shadows, per the quality preset. */
   private readonly fires: Fire[] = [];
+  /** Meshes that block movement. Colliders are derived from their geometry. */
+  private readonly solids: THREE.Mesh[] = [];
 
   private constructor(private readonly materials: RoomMaterials) {
     this.buildFloor();
@@ -52,6 +55,21 @@ export class TestRoom {
     return new TestRoom({ floor, wall, pillar, iron });
   }
 
+  addColliders(physics: PhysicsWorld): void {
+    for (const mesh of this.solids) {
+      const { geometry, position } = mesh;
+      if (geometry instanceof THREE.BoxGeometry) {
+        const { width, height, depth } = geometry.parameters;
+        physics.addStaticBox(new THREE.Vector3(width / 2, height / 2, depth / 2), position);
+      } else if (geometry instanceof THREE.CylinderGeometry) {
+        const { radiusTop, radiusBottom, height } = geometry.parameters;
+        physics.addStaticCylinder(Math.max(radiusTop, radiusBottom), height / 2, position);
+      } else {
+        throw new Error(`No collider shape for ${geometry.type}`);
+      }
+    }
+  }
+
   update(time: number, camera: THREE.Camera): void {
     for (const fire of this.fires) fire.update(time, camera);
   }
@@ -66,7 +84,7 @@ export class TestRoom {
 
   private buildFloor(): void {
     const size = HALF * 2;
-    const floor = this.addMesh(createTiledBox(size, 0.5, size, 3), this.materials.floor);
+    const floor = this.addSolid(createTiledBox(size, 0.5, size, 3), this.materials.floor);
     floor.position.y = -0.25;
     floor.castShadow = false;
   }
@@ -77,24 +95,24 @@ export class TestRoom {
     const { wall } = this.materials;
 
     // Back walls (full height).
-    this.addMesh(createTiledBox(WALL_THICKNESS, WALL_HEIGHT, span, 2.5), wall).position.set(
+    this.addSolid(createTiledBox(WALL_THICKNESS, WALL_HEIGHT, span, 2.5), wall).position.set(
       -outer,
       WALL_HEIGHT / 2,
       0,
     );
-    this.addMesh(createTiledBox(HALF * 2, WALL_HEIGHT, WALL_THICKNESS, 2.5), wall).position.set(
+    this.addSolid(createTiledBox(HALF * 2, WALL_HEIGHT, WALL_THICKNESS, 2.5), wall).position.set(
       0,
       WALL_HEIGHT / 2,
       -outer,
     );
 
     // Front walls (low, so the camera sees over them).
-    this.addMesh(createTiledBox(WALL_THICKNESS, LOW_WALL_HEIGHT, HALF * 2, 2.5), wall).position.set(
+    this.addSolid(createTiledBox(WALL_THICKNESS, LOW_WALL_HEIGHT, HALF * 2, 2.5), wall).position.set(
       outer,
       LOW_WALL_HEIGHT / 2,
       0,
     );
-    this.addMesh(createTiledBox(span, LOW_WALL_HEIGHT, WALL_THICKNESS, 2.5), wall).position.set(
+    this.addSolid(createTiledBox(span, LOW_WALL_HEIGHT, WALL_THICKNESS, 2.5), wall).position.set(
       0,
       LOW_WALL_HEIGHT / 2,
       outer,
@@ -115,21 +133,21 @@ export class TestRoom {
     const capital = createTiledBox(1.5, 0.35, 1.5, 2);
 
     for (const [x, z] of positions) {
-      this.addMesh(shaft, pillar).position.set(x, WALL_HEIGHT / 2, z);
-      this.addMesh(base, pillar).position.set(x, 0.2, z);
+      this.addSolid(shaft, pillar).position.set(x, WALL_HEIGHT / 2, z);
+      this.addSolid(base, pillar).position.set(x, 0.2, z);
       this.addMesh(capital, pillar).position.set(x, WALL_HEIGHT - 0.175, z);
     }
   }
 
   private buildDais(): void {
     const { pillar, iron } = this.materials;
-    this.addMesh(createTiledBox(6, 0.2, 6, 2), pillar).position.set(0, 0.1, 0);
-    this.addMesh(createTiledBox(4.4, 0.2, 4.4, 2), pillar).position.set(0, 0.3, 0);
+    this.addSolid(createTiledBox(6, 0.2, 6, 2), pillar).position.set(0, 0.1, 0);
+    this.addSolid(createTiledBox(4.4, 0.2, 4.4, 2), pillar).position.set(0, 0.3, 0);
 
     // Brazier: a stand and a bowl, with the main fire of the room.
-    const stand = this.addMesh(new THREE.CylinderGeometry(0.12, 0.2, 0.8, 12), iron);
+    const stand = this.addSolid(new THREE.CylinderGeometry(0.12, 0.2, 0.8, 12), iron);
     stand.position.set(0, 0.8, 0);
-    const bowl = this.addMesh(new THREE.CylinderGeometry(0.55, 0.3, 0.35, 16), iron);
+    const bowl = this.addSolid(new THREE.CylinderGeometry(0.55, 0.3, 0.35, 16), iron);
     bowl.position.set(0, 1.35, 0);
     // The fire sits right above the brazier, so its shadow would black out the whole dais.
     stand.castShadow = false;
@@ -164,6 +182,12 @@ export class TestRoom {
     const fire = new Fire(position, options);
     this.fires.push(fire);
     this.object.add(fire.object);
+  }
+
+  private addSolid(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
+    const mesh = this.addMesh(geometry, material);
+    this.solids.push(mesh);
+    return mesh;
   }
 
   private addMesh(geometry: THREE.BufferGeometry, material: THREE.Material): THREE.Mesh {
