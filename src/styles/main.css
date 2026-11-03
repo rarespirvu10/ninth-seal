@@ -25,3 +25,25 @@ body {
   inset: 0;
   pointer-events: none;
 }
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #050407;
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: 0.08em;
+}
+
+#loading h1 {
+  margin: 0 0 0.5rem;
+  font-weight: normal;
+  color: #d8b878;
+}
+
+#loading p {
+  margin: 0;
+  opacity: 0.6;
+}
