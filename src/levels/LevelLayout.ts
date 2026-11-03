@@ -52,6 +52,28 @@ export interface FireSpec {
   range: number;
 }
 
+/**
+ * Collision-only shape, invisible in the game. Used where the collision should be simpler than
+ * what's drawn, such as a ramp over shallow steps that slow walkers can't climb.
+ */
+export interface FrustumCollider {
+  shape: 'frustum';
+  /** Center of the base. */
+  position: Vec3;
+  /** Width (x) and depth (z) at the base and at the top, in meters. */
+  bottom: [number, number];
+  top: [number, number];
+  height: number;
+}
+
+export interface EnemySpawn {
+  /** Enemy kind, e.g. "skeleton". */
+  type: string;
+  position: Vec3;
+  /** Degrees around the vertical axis; 0 faces +Z. */
+  facing?: number;
+}
+
 export interface LevelLayout {
   name: string;
   spawn: Vec3;
@@ -60,6 +82,8 @@ export interface LevelLayout {
   ambient: { color: Vec3 };
   pieces: Piece[];
   fires: FireSpec[];
+  colliders?: FrustumCollider[];
+  enemies?: EnemySpawn[];
 }
 
 /** Validates untyped JSON and returns it as a layout, or throws with the path of the first problem. */
@@ -77,6 +101,18 @@ export function parseLevelLayout(data: unknown): LevelLayout {
   fires.forEach((fire, i) => {
     checkFire(fire, `fires[${i}]`);
   });
+
+  if (root.colliders !== undefined) {
+    asArray(root.colliders, 'colliders').forEach((collider, i) => {
+      checkCollider(collider, `colliders[${i}]`);
+    });
+  }
+
+  if (root.enemies !== undefined) {
+    asArray(root.enemies, 'enemies').forEach((enemy, i) => {
+      checkEnemy(enemy, `enemies[${i}]`);
+    });
+  }
 
   asString(root.name, 'name');
   asVec3(root.spawn, 'spawn');
@@ -123,6 +159,25 @@ function checkFire(value: unknown, path: string): void {
   asPositive(fire.size, `${path}.size`);
   asPositive(fire.intensity, `${path}.intensity`);
   asPositive(fire.range, `${path}.range`);
+}
+
+function checkCollider(value: unknown, path: string): void {
+  const collider = asRecord(value, path);
+  if (collider.shape !== 'frustum') fail(`${path}.shape`, 'expected "frustum"');
+  asVec3(collider.position, `${path}.position`);
+  asPositive(collider.height, `${path}.height`);
+  for (const key of ['bottom', 'top'] as const) {
+    const size = asArray(collider[key], `${path}.${key}`);
+    if (size.length !== 2) fail(`${path}.${key}`, 'expected 2 numbers');
+    size.forEach((n, i) => asPositive(n, `${path}.${key}[${i}]`));
+  }
+}
+
+function checkEnemy(value: unknown, path: string): void {
+  const enemy = asRecord(value, path);
+  asString(enemy.type, `${path}.type`);
+  asVec3(enemy.position, `${path}.position`);
+  if (enemy.facing !== undefined) asNumber(enemy.facing, `${path}.facing`);
 }
 
 function fail(path: string, message: string): never {

@@ -1,6 +1,7 @@
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { GameRenderer } from '../render/GameRenderer';
 import { QUALITY_LEVELS, type QualityLevel } from '../render/QualitySettings';
+import { projectToScreen } from '../ui/screenProjection';
 
 const REFRESH_INTERVAL = 0.25;
 
@@ -11,14 +12,26 @@ export interface DebugPlayerInfo {
   readonly animationState: string;
 }
 
+/** Something whose AI state is drawn above it while the overlay is open. */
+export interface DebugAgent {
+  readonly renderPosition: THREE.Vector3;
+  readonly height: number;
+  readonly state: string;
+  readonly health: { readonly current: number; readonly max: number };
+}
+
 /**
- * Developer overlay toggled with F3 or `: frame timing, renderer stats, GPU, quality controls.
- * Updates its text a few times per second rather than every frame to keep its own cost negligible.
+ * Developer overlay toggled with F3 or `: frame timing, renderer stats, GPU, quality controls,
+ * and each enemy's live AI state above its head.
+ * Stats refresh a few times per second rather than every frame to keep the overlay's cost negligible.
  */
 export class DebugOverlay {
   private readonly panel: HTMLElement;
   private readonly stats: HTMLElement;
   private readonly buttons = new Map<QualityLevel, HTMLButtonElement>();
+  private readonly labels: HTMLElement[];
+  private readonly anchor = new THREE.Vector3();
+  private readonly screen = { x: 0, y: 0 };
 
   private frames = 0;
   private sinceRefresh = 0;
@@ -28,6 +41,8 @@ export class DebugOverlay {
     root: HTMLElement,
     private readonly renderer: GameRenderer,
     private readonly player: DebugPlayerInfo,
+    private readonly agents: readonly DebugAgent[],
+    private readonly camera: THREE.Camera,
     onQualityChange: (level: QualityLevel) => void,
   ) {
     this.panel = document.createElement('section');
@@ -59,11 +74,20 @@ export class DebugOverlay {
     this.panel.append(controls);
     root.append(this.panel);
 
+    this.labels = agents.map(() => {
+      const label = document.createElement('div');
+      label.className = 'debug-label';
+      label.hidden = true;
+      root.append(label);
+      return label;
+    });
+
     this.highlightQuality();
     window.addEventListener('keydown', this.onKeyDown);
   }
 
   update(dt: number): void {
+    this.updateLabels();
     this.frames++;
     this.sinceRefresh += dt;
     this.worstFrame = Math.max(this.worstFrame, dt);
@@ -99,6 +123,20 @@ export class DebugOverlay {
     ].join('\n');
   }
 
+  private updateLabels(): void {
+    this.agents.forEach((agent, i) => {
+      const label = this.labels[i];
+      if (!label) return;
+      this.anchor.copy(agent.renderPosition).setY(agent.renderPosition.y + agent.height + 0.6);
+      const visible = !this.panel.hidden && projectToScreen(this.anchor, this.camera, this.screen);
+      label.hidden = !visible;
+      if (!visible) return;
+      label.style.transform = `translate(${this.screen.x}px, ${this.screen.y}px) translate(-50%, -100%)`;
+      const text = `${agent.state} ${Math.ceil(agent.health.current)}/${agent.health.max}`;
+      if (label.textContent !== text) label.textContent = text;
+    });
+  }
+
   private highlightQuality(): void {
     for (const [level, button] of this.buttons) {
       button.setAttribute('aria-pressed', String(level === this.renderer.quality));
@@ -111,5 +149,6 @@ export class DebugOverlay {
     event.preventDefault();
     this.panel.hidden = !this.panel.hidden;
     if (!this.panel.hidden) this.refresh();
+    this.updateLabels();
   };
 }
