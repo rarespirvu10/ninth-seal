@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { scaleRootMotion, type RootMotionCurve } from './rootMotion';
 
 const CHARACTER_ROOT = `${import.meta.env.BASE_URL}assets/characters`;
 
 /** Written by tools/blender/convert_character.py next to the model. */
 export interface CharacterMetadata {
   height: number;
-  clips: Record<string, { duration: number; groundSpeed?: number }>;
+  clips: Record<string, { duration: number; groundSpeed?: number; rootMotion?: RootMotionCurve }>;
 }
 
 export interface CharacterAsset {
@@ -16,6 +17,8 @@ export interface CharacterAsset {
   clip(name: string): THREE.AnimationClip;
   /** Speed (m/s) a clip travels at, at the character's in-game scale. */
   groundSpeed(name: string): number;
+  /** Horizontal travel removed from a clip, at the character's in-game scale; null if it stays in place. */
+  rootMotion(name: string): RootMotionCurve | null;
 }
 
 export interface CharacterOptions {
@@ -50,6 +53,11 @@ export async function loadCharacter(
   gltf.scene.scale.setScalar(scale);
 
   const clips = new Map(gltf.animations.map((clip) => [clip.name, clip]));
+  const rootMotion = new Map(
+    Object.entries(metadata.clips).flatMap(([clip, info]) =>
+      info.rootMotion ? [[clip, scaleRootMotion(info.rootMotion, scale)] as const] : [],
+    ),
+  );
   return {
     model: gltf.scene,
     height: metadata.height * scale,
@@ -62,6 +70,9 @@ export async function loadCharacter(
       const speed = metadata.clips[clipName]?.groundSpeed;
       if (speed === undefined) throw new Error(`Character "${name}" has no ground speed for "${clipName}"`);
       return speed * scale;
+    },
+    rootMotion(clipName) {
+      return rootMotion.get(clipName) ?? null;
     },
   };
 }

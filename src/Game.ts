@@ -20,11 +20,12 @@ export class Game {
   private readonly events = new EventBus<GameEvents>();
   private readonly scene = new THREE.Scene();
   private readonly isoCamera = new IsometricCamera();
-  private readonly input = new Input();
+  private readonly input: Input;
   private readonly renderer: GameRenderer;
   private readonly player: PlayerController;
   private readonly debug: DebugOverlay;
   private readonly loop: GameLoop;
+  private readonly aim = new THREE.Vector3();
   private elapsed = 0;
 
   private constructor(
@@ -34,6 +35,7 @@ export class Game {
     private readonly physics: PhysicsWorld,
     character: CharacterAsset,
   ) {
+    this.input = new Input(canvas);
     this.scene.background = new THREE.Color(0x050407);
     this.scene.fog = new THREE.FogExp2(0x050407, 0.012);
     this.scene.add(level.object);
@@ -43,6 +45,7 @@ export class Game {
       physics.createCharacter(level.spawnPoint),
       physics.gravity,
       character,
+      this.events,
     );
     this.scene.add(this.player.object);
 
@@ -101,7 +104,8 @@ export class Game {
   }
 
   private fixedUpdate(dt: number): void {
-    this.player.fixedUpdate(dt, this.input, this.isoCamera);
+    const aim = this.isoCamera.pointOnGround(this.input.pointer, this.player.renderPosition.y, this.aim);
+    this.player.fixedUpdate(dt, { input: this.input, basis: this.isoCamera, aim });
     this.physics.step(dt);
     this.player.afterPhysics(dt);
   }
