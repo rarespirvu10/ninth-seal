@@ -19,7 +19,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs}'],
     extends: [tseslint.configs.disableTypeChecked],
+  },
+  {
+    files: ['tools/**'],
+    languageOptions: { globals: globals.node },
   },
 );

@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fetch:textures": "node tools/fetch-textures.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",
