@@ -36,6 +36,10 @@ describe('playbackRate', () => {
     expect(playbackRate(20, -3.6)).toBe(-2);
   });
 
+  it('accepts a higher limit for characters whose clips travel slowly', () => {
+    expect(playbackRate(1.2, 0.33, 4)).toBeCloseTo(3.64);
+  });
+
   it('plays at normal speed when the clip has no measured ground speed', () => {
     expect(playbackRate(3, 0)).toBe(1);
   });

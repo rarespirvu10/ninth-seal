@@ -15,8 +15,11 @@ export interface CharacterAsset {
   /** Height in the game, in meters, after scaling. */
   height: number;
   clip(name: string): THREE.AnimationClip;
+  /** Like `clip`, but undefined instead of an error if the character doesn't have it. */
+  optionalClip(name: string): THREE.AnimationClip | undefined;
   /** Speed (m/s) a clip travels at, at the character's in-game scale. */
   groundSpeed(name: string): number;
+  optionalGroundSpeed(name: string): number | undefined;
   /** Horizontal travel removed from a clip, at the character's in-game scale; null if it stays in place. */
   rootMotion(name: string): RootMotionCurve | null;
 }
@@ -65,6 +68,13 @@ export async function loadCharacter(
       const clip = clips.get(clipName);
       if (!clip) throw new Error(`Character "${name}" has no "${clipName}" animation`);
       return clip;
+    },
+    optionalClip(clipName) {
+      return clips.get(clipName);
+    },
+    optionalGroundSpeed(clipName) {
+      const speed = metadata.clips[clipName]?.groundSpeed;
+      return speed === undefined ? undefined : speed * scale;
     },
     groundSpeed(clipName) {
       const speed = metadata.clips[clipName]?.groundSpeed;

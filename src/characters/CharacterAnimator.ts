@@ -8,12 +8,18 @@ const ACTION_FADE_OUT = 0.25;
 export interface LocomotionClips {
   idle: THREE.AnimationClip;
   walk: THREE.AnimationClip;
-  run: THREE.AnimationClip;
+  /** Optional: without it, the walk clip plays faster for every speed. */
+  run?: THREE.AnimationClip | undefined;
 }
 
 export interface LocomotionSpeeds {
   walk: number;
   run: number;
+}
+
+export interface AnimatorOptions {
+  /** Fastest the walk/run clips may play to keep up with movement. */
+  maxPlaybackRate?: number;
 }
 
 /**
@@ -27,6 +33,8 @@ export interface LocomotionSpeeds {
 export class CharacterAnimator {
   private readonly mixer: THREE.AnimationMixer;
   private readonly locomotion: Record<LocomotionState, THREE.AnimationAction>;
+  private readonly maxPlaybackRate: number | undefined;
+  private readonly hasRun: boolean;
   private locomotionState: LocomotionState = 'idle';
   private action: THREE.AnimationAction | null = null;
 
@@ -37,15 +45,21 @@ export class CharacterAnimator {
     private readonly groundSpeeds: LocomotionSpeeds,
     /** Gameplay walk and run speeds (m/s). */
     private readonly moveSpeeds: LocomotionSpeeds,
+    options: AnimatorOptions = {},
   ) {
     this.mixer = new THREE.AnimationMixer(root);
+    const walk = this.mixer.clipAction(clips.walk);
     this.locomotion = {
       idle: this.mixer.clipAction(clips.idle),
-      walk: this.mixer.clipAction(clips.walk),
-      run: this.mixer.clipAction(clips.run),
+      walk,
+      // Without a run clip, "run" is the walk action itself (selectState maps run to walk).
+      run: clips.run ? this.mixer.clipAction(clips.run) : walk,
     };
+    this.hasRun = clips.run !== undefined;
+    this.maxPlaybackRate = options.maxPlaybackRate;
     this.locomotion.idle.play();
   }
+
 
   /** The locomotion clip playing, or "action" while an action has taken over. */
   get state(): LocomotionState | 'action' {
@@ -69,6 +83,14 @@ export class CharacterAnimator {
     this.action = next;
   }
 
+  /** Drops any action and snaps back to idle with no fade (respawning). */
+  reset(): void {
+    this.mixer.stopAllAction();
+    this.action = null;
+    this.locomotionState = 'idle';
+    this.locomotion.idle.reset().play();
+  }
+
   setActionTime(time: number): void {
     if (this.action) this.action.time = time;
   }
@@ -86,7 +108,8 @@ export class CharacterAnimator {
   }
 
   update(dt: number, speed: number): void {
-    const next = selectLocomotionState(speed, this.moveSpeeds.walk, this.moveSpeeds.run);
+    let next = selectLocomotionState(speed, this.moveSpeeds.walk, this.moveSpeeds.run);
+    if (next === 'run' && !this.hasRun) next = 'walk';
     if (next !== this.locomotionState) {
       // While an action plays, only track the state so locomotion resumes with the right clip.
       if (!this.action) {
@@ -101,6 +124,7 @@ export class CharacterAnimator {
       this.locomotion[this.locomotionState].timeScale = playbackRate(
         speed,
         this.groundSpeeds[this.locomotionState],
+        this.maxPlaybackRate,
       );
     }
     this.mixer.update(dt);
