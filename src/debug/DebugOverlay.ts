@@ -18,6 +18,8 @@ export interface DebugAgent {
   readonly height: number;
   readonly state: string;
   readonly health: { readonly current: number; readonly max: number };
+  /** Hidden agents (faded corpses) get no label. */
+  readonly visible: boolean;
 }
 
 /**
@@ -128,7 +130,8 @@ export class DebugOverlay {
       const label = this.labels[i];
       if (!label) return;
       this.anchor.copy(agent.renderPosition).setY(agent.renderPosition.y + agent.height + 0.6);
-      const visible = !this.panel.hidden && projectToScreen(this.anchor, this.camera, this.screen);
+      const visible =
+        !this.panel.hidden && agent.visible && projectToScreen(this.anchor, this.camera, this.screen);
       label.hidden = !visible;
       if (!visible) return;
       label.style.transform = `translate(${this.screen.x}px, ${this.screen.y}px) translate(-50%, -100%)`;

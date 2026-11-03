@@ -21,6 +21,7 @@ export class CharacterBody {
   private readonly collider: RAPIER.Collider;
   private readonly controller: RAPIER.KinematicCharacterController;
   private readonly halfHeight: number;
+  private ghost = false;
 
   constructor(
     private readonly world: RAPIER.World,
@@ -56,7 +57,10 @@ export class CharacterBody {
 
   /** Requests a move; the controller resolves collisions. Applied on the next physics step. */
   move(delta: THREE.Vector3): void {
-    this.controller.computeColliderMovement(this.collider, delta);
+    // Ghosts only collide with the level itself, never with other characters, so nobody can
+    // push them and they can't push anybody.
+    const filter = this.ghost ? RAPIER.QueryFilterFlags.ONLY_FIXED : undefined;
+    this.controller.computeColliderMovement(this.collider, delta, filter);
     const corrected = this.controller.computedMovement();
     const current = this.body.translation();
     this.body.setNextKinematicTranslation({
@@ -73,8 +77,13 @@ export class CharacterBody {
     this.body.setNextKinematicTranslation(center);
   }
 
-  setCollisionEnabled(enabled: boolean): void {
-    this.collider.setEnabled(enabled);
+  /**
+   * A ghost (a corpse) is invisible to other characters: they walk straight through it, and its
+   * own moves (a death fall) only collide with the level.
+   */
+  setGhost(ghost: boolean): void {
+    this.ghost = ghost;
+    this.collider.setEnabled(!ghost);
   }
 
   /** Writes the position of the character's feet into `target`. */

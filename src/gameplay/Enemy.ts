@@ -7,6 +7,7 @@ import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import { StateMachine, type StateDefinition } from '../core/StateMachine';
 import type { CharacterBody } from '../physics/CharacterBody';
+import { FadeOut } from '../render/FadeOut';
 import { AttackSequence } from './AttackSequence';
 import type { Combatant } from './CombatSystem';
 import type { EnemyDefinition } from './enemies';
@@ -21,6 +22,9 @@ export interface EnemyTarget {
 }
 
 const TURN_SHARPNESS = 6;
+/** After landing, a body lies still this long, then fades out over CORPSE_FADE seconds. */
+const CORPSE_LINGER = 0.5;
+const CORPSE_FADE = 3;
 
 /**
  * An AI-driven enemy. Its brain is a state machine:
@@ -39,10 +43,13 @@ export class Enemy implements Combatant {
   private readonly death: ClipTimer;
   private readonly spawn: THREE.Vector3;
   private readonly spawnFacing: number;
+  private readonly fade: FadeOut;
   private actionTimeFrom = 0;
   private actionTimeTo = 0;
   private swing = 0;
   private cooldown = 0;
+  /** Seconds since the death fall landed. */
+  private corpseTime = 0;
 
   constructor(
     readonly id: number,
@@ -67,6 +74,7 @@ export class Enemy implements Combatant {
 
     this.object.add(model);
     this.object.position.copy(this.motor.position);
+    this.fade = new FadeOut(this.object, CORPSE_FADE);
     model.rotation.y = facing;
 
     const walkSpeed = character.groundSpeed('walk');
@@ -128,13 +136,22 @@ export class Enemy implements Combatant {
     },
     dead: {
       enter: (enemy: Enemy) => {
+        // A ghost from the first frame: walkable through, and impossible to push.
+        enemy.motor.setGhost(true);
         enemy.startAction(enemy.death);
         enemy.events.emit('combat:died', { target: enemy.id });
       },
       update: (enemy: Enemy, dt: number) => {
-        if (enemy.playAction(enemy.death, dt)) {
-          // Down for good: let others walk over the body.
-          enemy.motor.setCollisionEnabled(false);
+        // Fall with the death animation's root motion, then never move again: the body stays
+        // where it landed, as part of the floor, until it fades away.
+        if (!enemy.death.finished) {
+          enemy.playAction(enemy.death, dt);
+        } else {
+          enemy.corpseTime += dt;
+          if (enemy.corpseTime >= CORPSE_LINGER) {
+            enemy.fade.start();
+            enemy.fade.update(dt);
+          }
         }
         return undefined;
       },
@@ -165,6 +182,11 @@ export class Enemy implements Combatant {
     return this.machine.state;
   }
 
+  /** False once a corpse has faded away. */
+  get visible(): boolean {
+    return this.object.visible;
+  }
+
   takeHit(damage: number, fromX: number, fromZ: number): void {
     const taken = this.health.damage(damage);
     if (taken === 0) return;
@@ -188,7 +210,9 @@ export class Enemy implements Combatant {
 
   respawn(): void {
     this.health.reset();
-    this.motor.setCollisionEnabled(true);
+    this.fade.reset();
+    this.corpseTime = 0;
+    this.motor.setGhost(false);
     this.motor.teleport(this.spawn);
     this.motor.facing = this.spawnFacing;
     this.cooldown = 0;
@@ -206,6 +230,7 @@ export class Enemy implements Combatant {
   }
 
   render(dt: number, alpha: number): void {
+    if (!this.object.visible) return; // Faded away: nothing to draw or animate.
     this.object.position.copy(this.motor.interpolate(alpha));
     this.model.rotation.y = this.motor.facing;
 
