@@ -1,0 +1,16 @@
+{
+  "height": 1.564,
+  "clips": {
+    "idle": {
+      "duration": 7.5333
+    },
+    "run": {
+      "duration": 0.7,
+      "groundSpeed": 3.641
+    },
+    "walk": {
+      "duration": 1.2667,
+      "groundSpeed": -1.044
+    }
+  }
+}

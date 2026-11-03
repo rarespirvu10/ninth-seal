@@ -2,6 +2,13 @@
 
 Third-party assets used in this project, with their licenses. The project's own code and original assets are covered by the copyright notice in the [README](README.md#license).
 
+## Characters and animations
+
+From [Mixamo](https://www.mixamo.com) by Adobe, used under the Mixamo terms, which allow their use in games. Only converted game files are included in this repository, never the raw downloads.
+
+- Character: Paladin J Nordstrom
+- Animations: Sword And Shield Idle, Walk, and Run
+
 ## Textures
 
 From [Poly Haven](https://polyhaven.com), licensed [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Downloaded by `tools/fetch-textures.mjs`.
