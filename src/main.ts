@@ -1,11 +1,12 @@
 import { Game } from './Game';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game');
+const ui = document.querySelector<HTMLElement>('#ui');
 const loading = document.querySelector<HTMLElement>('#loading');
-if (!canvas) throw new Error('Missing #game canvas');
+if (!canvas || !ui) throw new Error('Missing #game canvas or #ui root');
 
 try {
-  const game = await Game.create(canvas);
+  const game = await Game.create(canvas, ui);
   loading?.remove();
   game.start();
 } catch (error) {

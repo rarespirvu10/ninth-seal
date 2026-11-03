@@ -5,9 +5,11 @@ import { GameLoop } from './core/GameLoop';
 import { Input } from './core/Input';
 import { PlayerController } from './gameplay/PlayerController';
 import { TestRoom } from './levels/TestRoom';
+import { DebugOverlay } from './debug/DebugOverlay';
 import { PhysicsWorld } from './physics/PhysicsWorld';
 import { GameRenderer } from './render/GameRenderer';
 import { IsometricCamera } from './render/IsometricCamera';
+import { loadQualityPreference, saveQualityPreference } from './render/qualityPreference';
 
 /** Composition root: creates the systems and wires them together. */
 export class Game {
@@ -17,11 +19,13 @@ export class Game {
   private readonly input = new Input();
   private readonly renderer: GameRenderer;
   private readonly player: PlayerController;
+  private readonly debug: DebugOverlay;
   private readonly loop: GameLoop;
   private elapsed = 0;
 
   private constructor(
     canvas: HTMLCanvasElement,
+    ui: HTMLElement,
     private readonly room: TestRoom,
     private readonly physics: PhysicsWorld,
   ) {
@@ -40,7 +44,18 @@ export class Game {
     this.events.on('quality:changed', ({ settings }) => {
       room.applyQuality(settings);
     });
-    this.renderer = new GameRenderer(canvas, this.scene, this.isoCamera.camera, this.events);
+    this.renderer = new GameRenderer(
+      canvas,
+      this.scene,
+      this.isoCamera.camera,
+      this.events,
+      loadQualityPreference() ?? undefined,
+    );
+
+    this.debug = new DebugOverlay(ui, this.renderer, this.player.renderPosition, (level) => {
+      this.renderer.setQuality(level);
+      saveQualityPreference(level);
+    });
 
     this.isoCamera.snapTo(room.spawnPoint);
 
@@ -54,12 +69,12 @@ export class Game {
     });
   }
 
-  static async create(canvas: HTMLCanvasElement): Promise<Game> {
+  static async create(canvas: HTMLCanvasElement, ui: HTMLElement): Promise<Game> {
     const [room, physics] = await Promise.all([
       TestRoom.load(new THREE.TextureLoader()),
       PhysicsWorld.create(),
     ]);
-    return new Game(canvas, room, physics);
+    return new Game(canvas, ui, room, physics);
   }
 
   start(): void {
@@ -78,5 +93,6 @@ export class Game {
     this.isoCamera.update(dt, this.player.renderPosition);
     this.room.update(this.elapsed, this.isoCamera.camera);
     this.renderer.render(dt);
+    this.debug.update(dt);
   }
 }
