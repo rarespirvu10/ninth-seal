@@ -34,7 +34,14 @@ Fixed timestep for physics and gameplay (60 Hz), variable rate for rendering wit
 An entity is an ID with a set of components (Transform, Health, Movement, Combat, AI, Renderable, ...). Systems iterate over entities with the components they need. A lightweight approach, not a full archetype-based ECS.
 
 ### State machines
-A generic, typed finite state machine drives player and enemy behavior (idle, patrol, chase, attack, stagger, dead) and the boss phases. States have enter/update/exit hooks and explicit transitions.
+A generic, typed finite state machine (`src/core/StateMachine.ts`) drives player and enemy behavior (idle, patrol, chase, attack, stagger, dead) and the boss phases. States have enter/update/exit hooks; `update` returns the next state's name to transition.
+
+### Combat
+- **Combos** are data: each step names a clip, the clip-time range it plays, a hit window, damage, reach, and arc (`src/gameplay/warriorAttacks.ts`). Hit windows were set from the measured peak speed of the weapon hand in each animation.
+- `AttackSequence` advances a combo on the fixed step. A click during a swing, or holding the button, chains the next step; otherwise the combo ends. Hit-window checks use interval overlap, so a long frame can never skip a hit.
+- Each swing re-aims at the cursor, and its clip's root-motion curve moves the body through physics, so lunges stop at walls.
+- Animation follows gameplay, not the reverse: action clips have their time set from the fixed-step simulation (interpolated for rendering), so the pose always matches the hit window.
+- During a hit window the player emits `player:strike` events; combat resolution subscribes to them rather than being called by the player code.
 
 ### Event bus
 A typed publish/subscribe bus. Event names and payloads are checked at compile time. Example: combat publishes `damage:dealt`; UI shows damage numbers and audio plays a hit sound without either knowing about combat.
