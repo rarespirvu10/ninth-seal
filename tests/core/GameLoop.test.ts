@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameLoop } from '../../src/core/GameLoop';
 
 function createLoop(fixedHz = 60, maxFrameTime = 0.25) {
@@ -49,5 +49,45 @@ describe('GameLoop', () => {
     loop.advance(-1);
 
     expect(fixedUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('GameLoop scheduling', () => {
+  let frames: FrameRequestCallback[];
+
+  beforeEach(() => {
+    frames = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps running after a frame throws', () => {
+    const update = vi.fn().mockImplementationOnce(() => {
+      throw new Error('bad frame');
+    });
+    const loop = new GameLoop({ fixedUpdate: vi.fn(), update });
+    loop.start();
+
+    expect(() => frames[0]?.(0)).toThrow('bad frame');
+    expect(frames).toHaveLength(2); // The next frame was still scheduled.
+
+    frames[1]?.(16);
+    expect(update).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops requesting frames after stop()', () => {
+    const loop = new GameLoop({ fixedUpdate: vi.fn(), update: vi.fn() });
+    loop.start();
+    loop.stop();
+
+    expect(loop.running).toBe(false);
+    expect(cancelAnimationFrame).toHaveBeenCalled();
   });
 });

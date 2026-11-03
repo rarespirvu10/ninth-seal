@@ -72,9 +72,11 @@ export class GameLoop {
   }
 
   private readonly onFrame = (time: number): void => {
+    // Schedule the next frame first: if this one throws, the error is still reported,
+    // but the game keeps running instead of freezing for good.
+    this.frameId = requestAnimationFrame(this.onFrame);
     const elapsed = this.lastTime === null ? 0 : (time - this.lastTime) / 1000;
     this.lastTime = time;
     this.advance(elapsed);
-    this.frameId = requestAnimationFrame(this.onFrame);
   };
 }
