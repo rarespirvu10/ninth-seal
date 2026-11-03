@@ -80,11 +80,18 @@ Each level is described once, in `data/levels/<name>.json`: pieces, materials, f
 2. Output goes to `public/assets/levels/<name>/`: the geometry (`level.glb`), an 8-bit sRGB lightmap scaled to its full range, and the intensity that decodes it.
 3. At runtime the game loads that geometry and lightmap for visuals, and reads the same layout file for colliders, fires, and the spawn point. Visuals and physics can't drift apart.
 
+### Character pipeline
+1. Raw Mixamo downloads go in `assets-src/mixamo/<name>/` (not committed): `<name>.fbx` with the skin and idle animation, plus one skinless FBX per extra animation.
+2. `npm run convert:character -- assets-src/mixamo/<name> <name>` runs `tools/blender/convert_character.py`. It merges every animation onto one skeleton as named clips, resizes textures to 1024 px, and turns Mixamo's specular map into glTF metalness and roughness so armor reads as metal. It also measures each locomotion clip's ground speed: how fast a planted foot slides backward relative to the hips.
+3. Output goes to `public/assets/characters/`: `<name>.glb` and `<name>.json` with the measured speeds.
+4. At runtime, `LocomotionAnimator` picks idle, walk, or run from the speed the character actually achieves after collisions, crossfades between them, and plays each clip at movement speed ÷ ground speed so the feet don't slide.
+
 ## Folder Structure
 
 ```
 src/
   core/        game loop, time, event bus, asset loader, object pools
+  characters/  character loading, animation
   ecs/         entities, components, systems
   physics/     Rapier wrapper, character controller
   render/      scene, camera rig, post-processing, quality presets
@@ -97,7 +104,7 @@ src/
   levels/      level data, triggers
   debug/       debug overlay, visual helpers
 data/          level layouts; class, skill, item, and enemy definitions
-tools/blender/ level baking and asset-generation scripts
+tools/blender/ level baking, character conversion, asset generation
 public/assets/ models, textures, audio
 tests/
 ```
