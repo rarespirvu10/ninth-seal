@@ -54,7 +54,7 @@ export const QUALITY_PRESETS: Readonly<Record<QualityLevel, Readonly<QualitySett
   ultra: {
     maxPixelRatio: 2,
     shadowMapSize: 1024,
-    shadowCastingLights: 4,
+    shadowCastingLights: 3,
     ambientOcclusion: 'High',
     ambientOcclusionHalfRes: false,
     bloom: true,

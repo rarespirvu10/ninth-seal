@@ -27,6 +27,7 @@ TypeScript · Three.js (WebGL2) · GLSL · Rapier physics · Web Audio API · In
 - **Data-driven content:** classes, skills, and items defined as typed data
 - **Versioned save system** with automatic migrations
 - **Adaptive graphics:** quality presets and dynamic resolution
+- **Scripted lighting pipeline:** Blender bakes lightmaps from the same level data the game uses for physics
 - **Automated pipeline:** lint, type-check, tests, and deploy on every push
 
 Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

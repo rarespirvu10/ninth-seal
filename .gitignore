@@ -1,3 +1,6 @@
+# Raw source assets (Mixamo downloads, Blender intermediates). Only processed game assets are committed.
+assets-src/
+
 node_modules/
 dist/
 .env

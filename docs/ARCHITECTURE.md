@@ -45,10 +45,16 @@ Projectiles, particles, damage numbers, and enemies are pooled to avoid garbage-
 ### Saving
 Save data is a versioned schema stored in IndexedDB. Each format change adds a migration, so older saves upgrade automatically.
 
+### Audio
+Built on the Web Audio API.
+- **Music director:** a state machine (exploration, combat, boss) driven by event-bus events such as `combat:started` and `boss:entered`. Transitions crossfade between tracks on the beat.
+- **Positional sound:** fire, enemies, and impacts are placed in 3D with HRTF panning relative to the listener, so they move between speakers as the player does.
+- **Sound effects** are pooled voices with randomized pitch and volume to avoid repetition. Footsteps are triggered from animation events.
+
 ## Rendering
 
-- **Baked lighting:** the dungeon's static lighting is computed in Blender and stored in lightmaps. Characters receive matching light from light probes.
-- **Dynamic lights:** a small number of shadow-casting lights (torches, spells), limited per quality preset.
+- **Baked lighting:** ambient sky light and bounced fire light are computed in Blender and stored in a lightmap, so corners and the areas behind pillars darken naturally. Characters get a matching image-based environment instead, so the level isn't lit twice.
+- **Dynamic lights:** fires stay live on top of the bake, so they flicker and cast real-time shadows. Shadows are budgeted per quality preset and given to the fires nearest the player.
 - **PBR materials** using photo-scanned textures.
 - **Post-processing:** ambient occlusion, bloom, filmic tone mapping, color grading, vignette, film grain.
 - **Custom shaders:** upgrade glow (+7 to +9), rune glow, dissolve on death, fog, liquids.
@@ -67,6 +73,13 @@ Save data is a versioned schema stored in IndexedDB. Each format change adds a m
 
 All models export as glTF and are compressed (meshopt geometry, KTX2 textures). The entrance camp loads first; the rest of the dungeon streams in the background.
 
+### Level pipeline
+Each level is described once, in `data/levels/<name>.json`: pieces, materials, fires, spawn point, ambient light.
+
+1. `npm run bake:level -- data/levels/<name>.json` runs `tools/blender/bake_level.py` in Blender. It builds the geometry with world-scaled texture coordinates, drops faces the fixed camera can never see, joins pieces into one mesh per material, unwraps a shared lightmap atlas, and bakes two Cycles passes (bounced fire light, then ambient sky light).
+2. Output goes to `public/assets/levels/<name>/`: the geometry (`level.glb`), an 8-bit sRGB lightmap scaled to its full range, and the intensity that decodes it.
+3. At runtime the game loads that geometry and lightmap for visuals, and reads the same layout file for colliders, fires, and the spawn point. Visuals and physics can't drift apart.
+
 ## Folder Structure
 
 ```
@@ -83,8 +96,8 @@ src/
   save/        IndexedDB persistence, schema migrations
   levels/      level data, triggers
   debug/       debug overlay, visual helpers
-data/          class, skill, item, and enemy definitions
-tools/blender/ asset-generation scripts
+data/          level layouts; class, skill, item, and enemy definitions
+tools/blender/ level baking and asset-generation scripts
 public/assets/ models, textures, audio
 tests/
 ```

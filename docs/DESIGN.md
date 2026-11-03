@@ -125,20 +125,44 @@ The camp is a safe zone; the player can return to it to shop and upgrade.
 - Each NPC has a few short voiced lines (greeting, key warnings). Voices are recorded by hand and processed into character voices.
 - Voice is a polish step; the game is complete without it.
 
-## 11. Saving
+## 11. Audio
+
+### Adaptive music
+The soundtrack follows what is happening, crossfading between three states:
+
+| State | When | Mood |
+|---|---|---|
+| Exploration | Default | Atmospheric, sparse, low drones |
+| Combat | Enemies have noticed the player | Driving percussion, tension |
+| Boss | Inside the Chamber of the Ninth Seal | Epic, choir and full orchestration |
+
+Combat music starts when the first enemy notices the player and fades back to exploration a few seconds after the last one dies or loses track of them.
+
+### Positional sound
+- Torches and braziers play a looping crackle from their position: it pans between speakers and gets louder as the player approaches.
+- Enemy sounds come from where the enemy is.
+
+### Sound effects
+- Footsteps synced to the animation, different for walking and running, with slight random pitch variation.
+- Sword swings and hits, bow draw and release, spell casts and impacts, per skill.
+- UI sounds: menus, equipping, upgrade success and failure.
+
+Browsers only allow audio after the player interacts with the page, so the game opens on a title screen with an Enter button.
+
+## 12. Saving
 
 - Automatic saves at checkpoints (entering each area, after the boss) plus manual save in the pause menu.
 - Stored locally in the browser. No account required.
 
-## 12. Visual Target
+## 13. Visual Target
 
 Diablo IV / Path of Exile 2: dark, realistic, atmospheric. Achieved through baked lighting, photo-based PBR materials, post-processing, fog, and particles. Must hold 60 FPS, with quality presets for weaker hardware. See [ARCHITECTURE.md](ARCHITECTURE.md#rendering).
 
-## 13. Out of Scope
+## 14. Out of Scope
 
 Multiplayer, PvP, crafting, open world, more than three classes, mounts.
 
-## 14. Milestones
+## 15. Milestones
 
 | # | Milestone | Done when |
 |---|---|---|
@@ -147,5 +171,5 @@ Multiplayer, PvP, crafting, open world, more than three classes, mounts.
 | M2 | Classes & skills | All three classes with their skills. |
 | M3 | Items & progression | Character creation, inventory, equipment, drops, leveling, upgrades. |
 | M4 | Dungeon & story | All five areas, NPCs, dialogue, rune puzzle, boss. |
-| M5 | Polish | VFX, audio, voice lines, menus, saving, balancing. |
+| M5 | Polish | VFX, adaptive music, sound effects, voice lines, menus, saving, balancing. |
 | M6 | Release | Performance pass, README media, final testing. |
