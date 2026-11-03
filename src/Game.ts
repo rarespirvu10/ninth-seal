@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import testRoomLayout from '../data/levels/test-room.json';
+import { loadCharacter, type CharacterAsset } from './characters/Character';
 import { EventBus } from './core/EventBus';
 import type { GameEvents } from './core/events';
 import { GameLoop } from './core/GameLoop';
@@ -30,6 +31,7 @@ export class Game {
     ui: HTMLElement,
     private readonly level: Level,
     private readonly physics: PhysicsWorld,
+    character: CharacterAsset,
   ) {
     this.scene.background = new THREE.Color(0x050407);
     this.scene.fog = new THREE.FogExp2(0x050407, 0.012);
@@ -39,6 +41,7 @@ export class Game {
     this.player = new PlayerController(
       physics.createCharacter(level.spawnPoint),
       physics.gravity,
+      character,
     );
     this.scene.add(this.player.object);
 
@@ -56,12 +59,14 @@ export class Game {
 
     // The level's ambient light is baked; dynamic objects get a matching environment instead.
     const ground = level.ambientColor.clone().multiplyScalar(0.25);
+    // Boosted so the metal armor has enough to reflect in a dark room.
     applyEnvironment(
       this.player.object,
       createAmbientEnvironment(this.renderer.renderer, level.ambientColor, ground),
+      2.5,
     );
 
-    this.debug = new DebugOverlay(ui, this.renderer, this.player.renderPosition, (quality) => {
+    this.debug = new DebugOverlay(ui, this.renderer, this.player, (quality) => {
       this.renderer.setQuality(quality);
       saveQualityPreference(quality);
     });
@@ -79,8 +84,12 @@ export class Game {
   }
 
   static async create(canvas: HTMLCanvasElement, ui: HTMLElement): Promise<Game> {
-    const [level, physics] = await Promise.all([Level.load(testRoomLayout), PhysicsWorld.create()]);
-    return new Game(canvas, ui, level, physics);
+    const [level, physics, character] = await Promise.all([
+      Level.load(testRoomLayout),
+      PhysicsWorld.create(),
+      loadCharacter('warrior'),
+    ]);
+    return new Game(canvas, ui, level, physics, character);
   }
 
   start(): void {
@@ -90,12 +99,12 @@ export class Game {
   private fixedUpdate(dt: number): void {
     this.player.fixedUpdate(dt, this.input, this.isoCamera);
     this.physics.step(dt);
-    this.player.afterPhysics();
+    this.player.afterPhysics(dt);
   }
 
   private update(dt: number, alpha: number): void {
     this.elapsed += dt;
-    this.player.render(alpha);
+    this.player.render(dt, alpha);
     this.isoCamera.update(dt, this.player.renderPosition);
     this.level.update(this.elapsed, this.isoCamera.camera, this.player.renderPosition);
     this.renderer.render(dt);

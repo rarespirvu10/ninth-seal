@@ -18,7 +18,8 @@ A short, dark action RPG played in the browser. Pick a class, gear up, and fight
 
 | Input | Action |
 |---|---|
-| WASD | Move |
+| WASD | Move (runs by default) |
+| Shift (hold) | Walk |
 | Mouse | Aim |
 | Left click | Basic attack |
 | 1–4 | Skills |
@@ -26,7 +27,7 @@ A short, dark action RPG played in the browser. Pick a class, gear up, and fight
 | E | Interact (NPCs, chests, doors) |
 | I | Inventory / character sheet |
 | Esc | Pause menu |
-| F3 | Debug overlay |
+| F3 or ` | Debug overlay |
 
 ## 3. Story
 

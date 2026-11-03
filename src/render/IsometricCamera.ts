@@ -33,7 +33,7 @@ export class IsometricCamera {
   constructor(options: IsometricCameraOptions = {}) {
     const yaw = options.yaw ?? Math.PI / 4;
     const pitch = options.pitch ?? THREE.MathUtils.degToRad(55);
-    const distance = options.distance ?? 24;
+    const distance = options.distance ?? 18;
     this.sharpness = options.followSharpness ?? 8;
     this.lookHeight = options.lookHeight ?? 1;
 
