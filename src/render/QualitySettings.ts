@@ -13,7 +13,6 @@ export interface QualitySettings {
   /** How many lights may cast shadows at once. */
   shadowCastingLights: number;
   ambientOcclusion: AmbientOcclusionMode;
-  ambientOcclusionHalfRes: boolean;
   bloom: boolean;
   /** SMAA anti-aliasing. */
   antialiasing: boolean;
@@ -26,7 +25,6 @@ export const QUALITY_PRESETS: Readonly<Record<QualityLevel, Readonly<QualitySett
     shadowMapSize: 256,
     shadowCastingLights: 0,
     ambientOcclusion: 'off',
-    ambientOcclusionHalfRes: true,
     bloom: true,
     antialiasing: false,
     textureAnisotropy: 1,
@@ -36,7 +34,6 @@ export const QUALITY_PRESETS: Readonly<Record<QualityLevel, Readonly<QualitySett
     shadowMapSize: 512,
     shadowCastingLights: 1,
     ambientOcclusion: 'Performance',
-    ambientOcclusionHalfRes: true,
     bloom: true,
     antialiasing: true,
     textureAnisotropy: 4,
@@ -45,8 +42,7 @@ export const QUALITY_PRESETS: Readonly<Record<QualityLevel, Readonly<QualitySett
     maxPixelRatio: 1.5,
     shadowMapSize: 512,
     shadowCastingLights: 2,
-    ambientOcclusion: 'Medium',
-    ambientOcclusionHalfRes: true,
+    ambientOcclusion: 'Low',
     bloom: true,
     antialiasing: true,
     textureAnisotropy: 8,
@@ -56,7 +52,6 @@ export const QUALITY_PRESETS: Readonly<Record<QualityLevel, Readonly<QualitySett
     shadowMapSize: 1024,
     shadowCastingLights: 3,
     ambientOcclusion: 'High',
-    ambientOcclusionHalfRes: false,
     bloom: true,
     antialiasing: true,
     textureAnisotropy: 16,

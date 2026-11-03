@@ -59,7 +59,7 @@ export class GameRenderer {
     this.gpu = readGpuName(this.renderer);
     this.composer = new EffectComposer(this.renderer, { frameBufferType: THREE.HalfFloatType });
 
-    this.setQuality(quality ?? detectQualityLevel(this.gpu));
+    this.applyQuality(quality ?? detectQualityLevel(this.gpu));
     window.addEventListener('resize', this.onResize);
   }
 
@@ -72,12 +72,7 @@ export class GameRenderer {
   }
 
   setQuality(level: QualityLevel): void {
-    this._quality = level;
-    this.settings = QUALITY_PRESETS[level];
-    this.buildPasses();
-    this.dynamicResolution.reset();
-    this.applyResolution();
-    this.events.emit('quality:changed', { level, settings: this.settings });
+    if (level !== this._quality) this.applyQuality(level);
   }
 
   render(frameTime: number): void {
@@ -92,6 +87,15 @@ export class GameRenderer {
     this.renderer.dispose();
   }
 
+  private applyQuality(level: QualityLevel): void {
+    this._quality = level;
+    this.settings = QUALITY_PRESETS[level];
+    this.buildPasses();
+    this.dynamicResolution.reset();
+    this.applyResolution();
+    this.events.emit('quality:changed', { level, settings: this.settings });
+  }
+
   private buildPasses(): void {
     // removeAllPasses() disposes the old passes and their render targets.
     this.composer.removeAllPasses();
@@ -104,7 +108,9 @@ export class GameRenderer {
       ao.configuration.aoRadius = 1.5;
       ao.configuration.distanceFalloff = 1;
       ao.configuration.intensity = 2.5;
-      ao.configuration.halfRes = this.settings.ambientOcclusionHalfRes;
+      // Never use N8AO's half-resolution mode: its multi-target shim returns an array from
+      // `renderTarget.texture`, which current three.js reads as a single texture and crashes on.
+      ao.configuration.halfRes = false;
       this.composer.addPass(ao);
     }
 
