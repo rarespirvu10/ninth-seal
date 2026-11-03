@@ -173,6 +173,10 @@ export class Game {
   /** Prepares GPU resources while the loading screen is still up. */
   async warmUp(): Promise<void> {
     await this.renderer.warmUp();
+    // Compile the corpse-burning shader too, so the first death doesn't stall the game.
+    for (const enemy of this.enemies) enemy.showDeathMaterials(true);
+    await this.renderer.warmUp();
+    for (const enemy of this.enemies) enemy.showDeathMaterials(false);
   }
 
   start(): void {

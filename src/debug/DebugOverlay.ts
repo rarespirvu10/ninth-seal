@@ -18,7 +18,7 @@ export interface DebugAgent {
   readonly height: number;
   readonly state: string;
   readonly health: { readonly current: number; readonly max: number };
-  /** Hidden agents (faded corpses) get no label. */
+  /** Hidden agents (corpses that have burned away) get no label. */
   readonly visible: boolean;
 }
 

@@ -7,7 +7,7 @@ import type { EventBus } from '../core/EventBus';
 import type { GameEvents } from '../core/events';
 import { StateMachine, type StateDefinition } from '../core/StateMachine';
 import type { CharacterBody } from '../physics/CharacterBody';
-import { FadeOut } from '../render/FadeOut';
+import { Dissolve } from '../render/Dissolve';
 import { AttackSequence } from './AttackSequence';
 import type { Combatant } from './CombatSystem';
 import type { EnemyDefinition } from './enemies';
@@ -22,9 +22,9 @@ export interface EnemyTarget {
 }
 
 const TURN_SHARPNESS = 6;
-/** After landing, a body lies still this long, then fades out over CORPSE_FADE seconds. */
-const CORPSE_LINGER = 0.5;
-const CORPSE_FADE = 3;
+/** After landing, a body lies still this long, then burns away over CORPSE_DISSOLVE seconds. */
+const CORPSE_LINGER = 0.8;
+const CORPSE_DISSOLVE = 2.6;
 
 /**
  * An AI-driven enemy. Its brain is a state machine:
@@ -43,7 +43,7 @@ export class Enemy implements Combatant {
   private readonly death: ClipTimer;
   private readonly spawn: THREE.Vector3;
   private readonly spawnFacing: number;
-  private readonly fade: FadeOut;
+  private readonly dissolve: Dissolve;
   private actionTimeFrom = 0;
   private actionTimeTo = 0;
   private swing = 0;
@@ -74,7 +74,7 @@ export class Enemy implements Combatant {
 
     this.object.add(model);
     this.object.position.copy(this.motor.position);
-    this.fade = new FadeOut(this.object, CORPSE_FADE);
+    this.dissolve = new Dissolve(this.object, { duration: CORPSE_DISSOLVE });
     model.rotation.y = facing;
 
     const walkSpeed = character.groundSpeed('walk');
@@ -143,14 +143,14 @@ export class Enemy implements Combatant {
       },
       update: (enemy: Enemy, dt: number) => {
         // Fall with the death animation's root motion, then never move again: the body stays
-        // where it landed, as part of the floor, until it fades away.
+        // where it landed, as part of the floor, until it burns away.
         if (!enemy.death.finished) {
           enemy.playAction(enemy.death, dt);
         } else {
           enemy.corpseTime += dt;
           if (enemy.corpseTime >= CORPSE_LINGER) {
-            enemy.fade.start();
-            enemy.fade.update(dt);
+            enemy.dissolve.start();
+            enemy.dissolve.update(dt);
           }
         }
         return undefined;
@@ -182,7 +182,7 @@ export class Enemy implements Combatant {
     return this.machine.state;
   }
 
-  /** False once a corpse has faded away. */
+  /** False once a corpse has burned away. */
   get visible(): boolean {
     return this.object.visible;
   }
@@ -209,9 +209,14 @@ export class Enemy implements Combatant {
     }
   }
 
+  /** Shows the corpse-burning materials (or not), so loading can compile their shader early. */
+  showDeathMaterials(enabled: boolean): void {
+    this.dissolve.useDissolvingMaterials(enabled);
+  }
+
   respawn(): void {
     this.health.reset();
-    this.fade.reset();
+    this.dissolve.reset();
     this.corpseTime = 0;
     this.motor.setGhost(false);
     this.motor.teleport(this.spawn);
@@ -231,7 +236,7 @@ export class Enemy implements Combatant {
   }
 
   render(dt: number, alpha: number): void {
-    if (!this.object.visible) return; // Faded away: nothing to draw or animate.
+    if (!this.object.visible) return; // Burned away: nothing to draw or animate.
     this.object.position.copy(this.motor.interpolate(alpha));
     this.model.rotation.y = this.motor.facing;
 
