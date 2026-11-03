@@ -54,7 +54,12 @@ A generic, typed finite state machine (`src/core/StateMachine.ts`) drives player
 A typed publish/subscribe bus. Event names and payloads are checked at compile time. Example: combat publishes `damage:dealt`; UI shows damage numbers and audio plays a hit sound without either knowing about combat.
 
 ### Object pools
-Projectiles, particles, damage numbers, and enemies are pooled to avoid garbage-collection pauses during combat.
+`ObjectPool` reuses objects instead of allocating them, to avoid garbage-collection pauses during combat. Damage numbers use it today: a whole fight creates only as many number elements as are ever on screen at once, and the debug overlay reports live and created counts. Projectiles and particles will use it too. Effects that update every frame (the weapon trail) reuse their own buffers and allocate nothing after construction.
+
+### Game feel
+- **Hit-stop:** landing a blow pauses the simulation for 60 ms (110 ms for heavy hits) while rendering continues.
+- **Camera shake:** trauma-based. Hits add trauma, which decays quickly, and the visible shake grows with its square, so small hits barely register and big ones punch.
+- **Damage numbers** float over whoever was hit: gold for damage dealt, red for damage taken, larger for heavy hits.
 
 ### Saving
 Save data is a versioned schema stored in IndexedDB. Each format change adds a migration, so older saves upgrade automatically.
@@ -72,7 +77,12 @@ Built on the Web Audio API.
 - **Shader warm-up:** every material compiles while the loading screen is up, so enemies appearing for the first time don't stall a frame.
 - **PBR materials** using photo-scanned textures.
 - **Post-processing:** ambient occlusion, bloom, filmic tone mapping, color grading, vignette, film grain.
-- **Custom shaders:** upgrade glow (+7 to +9), rune glow, dissolve on death, fog, liquids.
+- **Custom shaders** (`src/shaders/`):
+  - Built: a procedural flame, a weapon trail, and a death dissolve.
+  - Planned: upgrade glow (+7 to +9), rune glow, fog, liquids.
+  - The trail is a ribbon between the blade's base and tip, sampled each frame and smoothed with Catmull-Rom splines.
+  - The dissolve extends three.js's standard material through `onBeforeCompile`: noise discards pixels, and a glowing band runs along the burning edge. Corpses keep full lighting until gone, with no transparency sorting.
+- **Shader warm-up** includes variants that only appear later, such as the dissolve, so nothing compiles mid-fight.
 - **Quality presets:** Low / Medium / High / Ultra, chosen automatically from the detected GPU and adjustable in settings.
 - **Dynamic resolution:** render resolution drops temporarily when the frame rate does.
 
