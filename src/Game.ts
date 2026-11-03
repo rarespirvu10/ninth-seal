@@ -16,9 +16,16 @@ import { Level } from './levels/Level';
 import { PhysicsWorld } from './physics/PhysicsWorld';
 import { applyEnvironment, createAmbientEnvironment } from './render/environment';
 import { GameRenderer } from './render/GameRenderer';
+import { WeaponTrail } from './render/effects/WeaponTrail';
 import { IsometricCamera } from './render/IsometricCamera';
 import { loadQualityPreference, saveQualityPreference } from './render/qualityPreference';
+import { DamageNumbers } from './ui/DamageNumbers';
 import { Hud } from './ui/Hud';
+
+/** Hit-stop durations, in seconds, when the player's blow lands. */
+const HIT_STOP = 0.06;
+const HIT_STOP_HEAVY = 0.11;
+const HEAVY_HIT = 30;
 
 /** Composition root: creates the systems and wires them together. */
 export class Game {
@@ -31,9 +38,13 @@ export class Game {
   private readonly enemies: Enemy[] = [];
   private readonly debug: DebugOverlay;
   private readonly hud: Hud;
+  private readonly damageNumbers: DamageNumbers;
+  private readonly swordTrail: WeaponTrail;
   private readonly loop: GameLoop;
   private readonly aim = new THREE.Vector3();
   private elapsed = 0;
+  /** Seconds of simulation pause left from the last landed blow. */
+  private hitStop = 0;
 
   private constructor(
     canvas: HTMLCanvasElement,
@@ -41,6 +52,7 @@ export class Game {
     private readonly level: Level,
     private readonly physics: PhysicsWorld,
     character: CharacterAsset,
+    sword: THREE.Object3D,
     enemyCharacters: ReadonlyMap<string, CharacterAsset>,
   ) {
     this.input = new Input(canvas);
@@ -56,6 +68,12 @@ export class Game {
       this.events,
     );
     this.scene.add(this.player.object);
+    // Traced between the blade's base and tip (the sword's local +Y axis runs along the blade).
+    this.swordTrail = new WeaponTrail(sword, {
+      base: new THREE.Vector3(0, 0.2, 0),
+      tip: new THREE.Vector3(0, 0.87, 0),
+    });
+    this.scene.add(this.swordTrail.mesh);
 
     level.enemySpawns.forEach((spawn, index) => {
       const definition = ENEMY_TYPES[spawn.type];
@@ -77,6 +95,18 @@ export class Game {
     });
     // Lives as long as its event subscription: it resolves strikes announced on the bus.
     new CombatSystem(this.events, this.player, this.enemies);
+
+    // Game feel: landing a blow freezes the action for a few frames (hit-stop), heavy blows and
+    // getting hit shake the camera.
+    this.events.on('combat:damaged', ({ target, amount }) => {
+      const heavy = amount >= HEAVY_HIT;
+      if (target === 'player') {
+        this.isoCamera.shake(0.45);
+      } else {
+        this.hitStop = Math.max(this.hitStop, heavy ? HIT_STOP_HEAVY : HIT_STOP);
+        if (heavy) this.isoCamera.shake(0.35);
+      }
+    });
 
     // Subscribe before the renderer exists: it announces the initial quality from its constructor.
     this.events.on('quality:changed', ({ settings }) => {
@@ -100,10 +130,19 @@ export class Game {
     this.hud = new Hud(ui, this.events, this.player, this.enemies, () => {
       this.restart();
     });
-    this.debug = new DebugOverlay(ui, this.renderer, this.player, this.enemies, this.isoCamera.camera, (quality) => {
-      this.renderer.setQuality(quality);
-      saveQualityPreference(quality);
-    });
+    this.damageNumbers = new DamageNumbers(ui, this.events);
+    this.debug = new DebugOverlay(
+      ui,
+      this.renderer,
+      this.player,
+      this.enemies,
+      [{ name: 'damage numbers', pool: this.damageNumbers.pool }],
+      this.isoCamera.camera,
+      (quality) => {
+        this.renderer.setQuality(quality);
+        saveQualityPreference(quality);
+      },
+    );
 
     this.isoCamera.snapTo(level.spawnPoint);
 
@@ -125,14 +164,19 @@ export class Game {
       loadWeaponModels(),
       loadCharacter(SKELETON.character, { height: SKELETON.height }),
     ]);
-    attachToBone(character.model, weapons.create('sword'), MIXAMO_MOUNTS.mainHand);
+    const sword = weapons.create('sword');
+    attachToBone(character.model, sword, MIXAMO_MOUNTS.mainHand);
     attachToBone(character.model, weapons.create('shield'), MIXAMO_MOUNTS.offHandShield);
-    return new Game(canvas, ui, level, physics, character, new Map([[SKELETON.character, skeleton]]));
+    return new Game(canvas, ui, level, physics, character, sword, new Map([[SKELETON.character, skeleton]]));
   }
 
   /** Prepares GPU resources while the loading screen is still up. */
   async warmUp(): Promise<void> {
     await this.renderer.warmUp();
+    // Compile the corpse-burning shader too, so the first death doesn't stall the game.
+    for (const enemy of this.enemies) enemy.showDeathMaterials(true);
+    await this.renderer.warmUp();
+    for (const enemy of this.enemies) enemy.showDeathMaterials(false);
   }
 
   start(): void {
@@ -147,6 +191,11 @@ export class Game {
   }
 
   private fixedUpdate(dt: number): void {
+    if (this.hitStop > 0) {
+      // Frozen: the world holds its pose; input stays queued for when it resumes.
+      this.hitStop -= dt;
+      return;
+    }
     const aim = this.isoCamera.pointOnGround(this.input.pointer, this.player.renderPosition.y, this.aim);
     this.player.fixedUpdate(dt, { input: this.input, basis: this.isoCamera, aim });
     for (const enemy of this.enemies) enemy.fixedUpdate(dt);
@@ -159,10 +208,12 @@ export class Game {
     this.elapsed += dt;
     this.player.render(dt, alpha);
     for (const enemy of this.enemies) enemy.render(dt, alpha);
+    this.swordTrail.update(dt, this.player.isSwinging);
     this.isoCamera.update(dt, this.player.renderPosition);
     this.level.update(this.elapsed, this.isoCamera.camera, this.player.renderPosition);
     this.renderer.render(dt);
     this.hud.update(this.isoCamera.camera);
+    this.damageNumbers.update(dt, this.isoCamera.camera);
     this.debug.update(dt);
   }
 }

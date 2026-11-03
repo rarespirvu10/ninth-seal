@@ -18,8 +18,14 @@ export interface DebugAgent {
   readonly height: number;
   readonly state: string;
   readonly health: { readonly current: number; readonly max: number };
-  /** Hidden agents (faded corpses) get no label. */
+  /** Hidden agents (corpses that have burned away) get no label. */
   readonly visible: boolean;
+}
+
+/** An object pool whose usage the overlay reports. */
+export interface DebugPool {
+  readonly name: string;
+  readonly pool: { readonly inUse: number; readonly size: number };
 }
 
 /**
@@ -44,6 +50,7 @@ export class DebugOverlay {
     private readonly renderer: GameRenderer,
     private readonly player: DebugPlayerInfo,
     private readonly agents: readonly DebugAgent[],
+    private readonly pools: readonly DebugPool[],
     private readonly camera: THREE.Camera,
     onQualityChange: (level: QualityLevel) => void,
   ) {
@@ -122,6 +129,9 @@ export class DebugOverlay {
       `GPU        ${this.renderer.gpu ?? 'unknown'}`,
       `Player     ${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)}`,
       `Movement   ${this.player.animationState}, ${this.player.speed.toFixed(1)} m/s`,
+      ...this.pools.map(
+        ({ name, pool }) => `Pool       ${name}: ${pool.inUse} live, ${pool.size} created`,
+      ),
     ].join('\n');
   }
 
