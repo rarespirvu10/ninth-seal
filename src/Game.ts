@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import testRoomLayout from '../data/levels/test-room.json';
 import { loadCharacter, type CharacterAsset } from './characters/Character';
+import { attachToBone, loadWeaponModels, MIXAMO_MOUNTS } from './characters/equipment';
 import { EventBus } from './core/EventBus';
 import type { GameEvents } from './core/events';
 import { GameLoop } from './core/GameLoop';
@@ -84,11 +85,14 @@ export class Game {
   }
 
   static async create(canvas: HTMLCanvasElement, ui: HTMLElement): Promise<Game> {
-    const [level, physics, character] = await Promise.all([
+    const [level, physics, character, weapons] = await Promise.all([
       Level.load(testRoomLayout),
       PhysicsWorld.create(),
       loadCharacter('warrior', { height: 1.8 }),
+      loadWeaponModels(),
     ]);
+    attachToBone(character.model, weapons.create('sword'), MIXAMO_MOUNTS.mainHand);
+    attachToBone(character.model, weapons.create('shield'), MIXAMO_MOUNTS.offHandShield);
     return new Game(canvas, ui, level, physics, character);
   }
 
