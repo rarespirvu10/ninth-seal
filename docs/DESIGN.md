@@ -51,11 +51,22 @@ The player descends to the ninth seal to stop whatever is breaking through.
 | Assassin | DEX | Daggers, Bow, Sword | Fast melee with daggers, or ranged with a bow |
 | Sorcerer | INT | Staff, Sword | Spells, area control |
 
-All classes use **mana** for skills. Each class has a basic attack and four skills *(draft)*:
+All classes use **mana** (100, regenerating 6 per second) for skills on keys 1–4. Each class has a basic attack and four skills.
 
-- **Warrior:** Cleave (frontal arc), Charge (dash and knockback), War Cry (damage buff, draws enemy attention), Earthshatter (ground slam, stuns).
-- **Assassin:** Shadowstep (short teleport), Smoke Bomb (enemies lose track of you), plus two weapon-dependent skills. Daggers: Blade Flurry, Fan of Knives. Bow: Piercing Shot, Volley.
-- **Sorcerer:** Firebolt (projectile), Frost Nova (area slow), Blink (teleport), Meteor (delayed large area hit).
+**Warrior** *(implemented)*
+
+| Skill | Mana | Cooldown | Effect |
+|---|---|---|---|
+| Cleave | 12 | 2.5 s | 220° sweep: 26 damage and a slight shove |
+| Charge | 18 | 6 s | Dash up to 7 m toward the cursor, stopping at the first enemy or wall, then a shield bash: 22 damage, 0.8 s stun, hard knockback |
+| War Cry | 20 | 15 s | Draws enemies within 10 m and raises damage by 50% for 8 s |
+| Earthshatter | 35 | 10 s | Leap and slam: 34 damage within 3.2 m of the impact, 1.6 s stun |
+
+**Assassin** *(draft)*: Shadowstep (a long forward dive), Smoke Bomb (enemies lose track of you), Blade Flurry (rapid combo), Fan of Knives (a channeled spin hurling knives at every enemy nearby, in the style of Katarina's Death Lotus). Bow skills (Piercing Shot, Volley) arrive with the bow in M3.
+
+**Sorcerer** *(draft)*: Firebolt (projectile), Frost Nova (area slow), Blink (a quick sidestep toward the cursor), Meteor (a warning circle, then a large impact).
+
+Skills can't be interrupted by flinching, and a skill can cut a basic-attack combo short.
 
 ## 6. Stats & Leveling
 

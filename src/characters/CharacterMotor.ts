@@ -4,6 +4,8 @@ import { rootMotionDelta, type RootMotionCurve } from './rootMotion';
 
 /** Smoothing for the measured speed, so single-step jitter doesn't flicker animation states. */
 const SPEED_SHARPNESS = 15;
+/** How quickly knockback fades; at 9 per second, a push travels about 1/9 of its speed in meters. */
+const PUSH_DECAY = 9;
 
 /**
  * Moves a character's physics body on the fixed step: walking, root-motion travel, gravity, and
@@ -22,6 +24,9 @@ export class CharacterMotor {
   private readonly delta = new THREE.Vector3();
   private verticalVelocity = 0;
   private _speed = 0;
+  /** External shove (knockback), in m/s; decays quickly and adds to whatever the character does. */
+  private pushX = 0;
+  private pushZ = 0;
 
   constructor(
     private readonly body: CharacterBody,
@@ -62,6 +67,12 @@ export class CharacterMotor {
   hold(dt: number): void {
     this.delta.set(0, 0, 0);
     this.step(dt);
+  }
+
+  /** Shoves the character: adds a velocity (m/s) that fades out over about a third of a second. */
+  push(vx: number, vz: number): void {
+    this.pushX += vx;
+    this.pushZ += vz;
   }
 
   /** Turns toward an angle along the shortest arc, frame-rate independently. */
@@ -107,6 +118,8 @@ export class CharacterMotor {
     this.renderPosition.copy(feet);
     this._speed = 0;
     this.verticalVelocity = 0;
+    this.pushX = 0;
+    this.pushZ = 0;
   }
 
   /** Corpses become ghosts: other characters walk through them and can't push them. */
@@ -118,6 +131,11 @@ export class CharacterMotor {
     // Keep a small downward push while grounded so ground snapping stays engaged.
     this.verticalVelocity = this.body.grounded ? -1 : this.verticalVelocity + this.gravity * dt;
     this.delta.y = this.verticalVelocity * dt;
+    this.delta.x += this.pushX * dt;
+    this.delta.z += this.pushZ * dt;
+    const decay = Math.exp(-PUSH_DECAY * dt);
+    this.pushX *= decay;
+    this.pushZ *= decay;
     this.body.move(this.delta);
   }
 }

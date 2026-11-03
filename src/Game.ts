@@ -16,6 +16,7 @@ import { Level } from './levels/Level';
 import { PhysicsWorld } from './physics/PhysicsWorld';
 import { applyEnvironment, createAmbientEnvironment } from './render/environment';
 import { GameRenderer } from './render/GameRenderer';
+import { Effects } from './render/effects/Effects';
 import { WeaponTrail } from './render/effects/WeaponTrail';
 import { IsometricCamera } from './render/IsometricCamera';
 import { loadQualityPreference, saveQualityPreference } from './render/qualityPreference';
@@ -40,6 +41,8 @@ export class Game {
   private readonly hud: Hud;
   private readonly damageNumbers: DamageNumbers;
   private readonly swordTrail: WeaponTrail;
+  private readonly effects: Effects;
+  private readonly combat: CombatSystem;
   private readonly loop: GameLoop;
   private readonly aim = new THREE.Vector3();
   private elapsed = 0;
@@ -61,12 +64,17 @@ export class Game {
     this.scene.add(level.object);
     level.addColliders(physics);
 
-    this.player = new PlayerController(
-      physics.createCharacter(level.spawnPoint),
-      physics.gravity,
-      character,
-      this.events,
-    );
+    this.effects = new Effects(this.scene);
+    this.player = new PlayerController(physics.createCharacter(level.spawnPoint), physics.gravity, character, this.events, {
+      shockwave: (center, radius, color) => {
+        this.effects.shockwave(center, radius, color);
+      },
+      shake: (amount) => {
+        this.isoCamera.shake(amount);
+      },
+      // The combat system is created below, once the enemies exist; skills only run after that.
+      enemiesNear: (x, z, radius) => this.combat.enemiesNear(x, z, radius),
+    });
     this.scene.add(this.player.object);
     // Traced between the blade's base and tip (the sword's local +Y axis runs along the blade).
     this.swordTrail = new WeaponTrail(sword, {
@@ -93,8 +101,8 @@ export class Game {
       this.enemies.push(enemy);
       this.scene.add(enemy.object);
     });
-    // Lives as long as its event subscription: it resolves strikes announced on the bus.
-    new CombatSystem(this.events, this.player, this.enemies);
+    // Resolves strikes, area hits, and provokes announced on the bus.
+    this.combat = new CombatSystem(this.events, this.player, this.enemies);
 
     // Game feel: landing a blow freezes the action for a few frames (hit-stop), heavy blows and
     // getting hit shake the camera.
@@ -209,6 +217,7 @@ export class Game {
     this.player.render(dt, alpha);
     for (const enemy of this.enemies) enemy.render(dt, alpha);
     this.swordTrail.update(dt, this.player.isSwinging);
+    this.effects.update(dt);
     this.isoCamera.update(dt, this.player.renderPosition);
     this.level.update(this.elapsed, this.isoCamera.camera, this.player.renderPosition);
     this.renderer.render(dt);

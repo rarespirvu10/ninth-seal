@@ -71,28 +71,35 @@ body {
   inset: 0;
 }
 
-.health-orb {
+.action-bar {
   position: absolute;
-  bottom: 28px;
+  bottom: 16px;
   left: 50%;
-  width: 120px;
-  height: 120px;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
   transform: translateX(-50%);
+}
+
+.orb {
+  position: relative;
+  width: 112px;
+  height: 112px;
   filter: drop-shadow(0 4px 12px rgb(0 0 0 / 70%));
 }
 
-.health-orb svg {
+.orb svg {
   width: 100%;
   height: 100%;
 }
 
-.health-orb-fill {
+.orb-fill {
   transform-box: fill-box;
   transform-origin: bottom;
-  transition: transform 0.35s ease-out;
+  transition: transform 0.25s ease-out;
 }
 
-.health-orb-label {
+.orb-label {
   position: absolute;
   inset: 0;
   display: grid;
@@ -100,6 +107,94 @@ body {
   font: 600 13px/1 Georgia, 'Times New Roman', serif;
   color: #f4e3c4;
   text-shadow: 0 1px 3px #000;
+}
+
+.skill-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 7px;
+  background: linear-gradient(#1c130d, #0b0705);
+  border: 1px solid #5a4325;
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgb(255 220 160 / 12%),
+    0 6px 18px rgb(0 0 0 / 60%);
+  pointer-events: auto;
+}
+
+.skill-slot {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  outline: 1px solid #8a6a3a;
+}
+
+.skill-slot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: filter 0.2s;
+}
+
+.skill-slot.unaffordable svg {
+  filter: grayscale(0.6) brightness(0.55);
+}
+
+.skill-slot.unaffordable .skill-cost {
+  color: #ff6a5a;
+}
+
+.skill-cooldown {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: conic-gradient(rgb(0 0 0 / 72%) var(--cooldown, 0deg), transparent 0);
+}
+
+.skill-timer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  font: 700 18px/1 Georgia, 'Times New Roman', serif;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+}
+
+.skill-key,
+.skill-cost {
+  position: absolute;
+  font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace;
+  text-shadow:
+    0 0 3px #000,
+    0 1px 1px #000;
+}
+
+.skill-key {
+  top: 3px;
+  left: 5px;
+  color: #f4e3c4;
+}
+
+.skill-cost {
+  right: 4px;
+  bottom: 3px;
+  color: #8ec3ff;
+}
+
+.buff {
+  position: absolute;
+  bottom: 142px;
+  left: 50%;
+  padding: 4px 10px;
+  transform: translateX(-50%);
+  font: 600 12px/1.3 Georgia, 'Times New Roman', serif;
+  color: #ffd98a;
+  background: rgb(40 20 5 / 80%);
+  border: 1px solid #b8862f;
+  border-radius: 12px;
 }
 
 .enemy-bar {
@@ -206,8 +301,10 @@ body {
 
 .controls-hint {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
+  top: 12px;
+  right: 14px;
+  margin: 0;
+  text-align: right;
   font-size: 12px;
   opacity: 0.55;
 }

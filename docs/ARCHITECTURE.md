@@ -44,9 +44,16 @@ A generic, typed finite state machine (`src/core/StateMachine.ts`) drives player
 - During a hit window, attackers emit `combat:strike` events. `CombatSystem` subscribes and resolves them with an arc test that counts the target's body width, so neither side calls the other: each swing hits a target at most once, the player hits enemies, and enemies hit the player.
 - Damage and deaths are events too (`combat:damaged`, `combat:died`), which the HUD listens to.
 
+### Skills
+- A skill is a **strategy object**: a definition (name, mana cost, cooldown, icon) plus `begin(host)`, which returns the action that plays it out (`src/gameplay/skills/`).
+- Skills only talk to a `SkillHost` interface: pose and move with root motion, strike, area hit, provoke, empower, shockwave, camera shake, and nearby-enemy queries. The player implements it, so new classes' skills plug in without touching player code.
+- Most skills are a `ClipTimeline`: play part of a clip, fire cues and hit windows at clip times measured from the animation. Charge is custom: a dash phase that ends on contact, a wall, or max distance, then a bash timeline.
+- `SkillSlots` tracks cooldowns and `Mana` the resource. Refusals become `skill:denied` events, which the HUD flashes.
+- Hits can carry effects (stun, knockback) and area hits (`combat:area`) cover slams. Knockback lives in `CharacterMotor` as a decaying push, so any character can be shoved.
+
 ### Characters and AI
 - `CharacterMotor` is a component owned by both the player and enemies. It handles movement on the fixed step, gravity, facing, root-motion travel, speed measurement, and render interpolation.
-- Each enemy is a state machine: idle, then chase once the player is within aggro range, then attack when in reach and off cooldown, with flinch and death reachable from any state. Tuning lives in data (`src/gameplay/enemies.ts`).
+- Each enemy is a state machine: idle, then chase once the player is within aggro range or is provoked, then attack when in reach and off cooldown. Flinch, stun, and death are reachable from any state. Tuning lives in data (`src/gameplay/enemies.ts`).
 - The player flinches when hit, then ignores further flinches for a moment, so groups can't stun-lock them.
 - With the debug overlay open, each enemy's live state and health float above it.
 

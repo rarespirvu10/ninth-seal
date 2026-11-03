@@ -19,6 +19,7 @@ export class Input {
   private readonly buttons = new Set<number>();
   /** Presses not yet consumed, so a click between two fixed steps isn't lost. */
   private readonly presses = new Set<number>();
+  private readonly keyPresses = new Set<string>();
 
   constructor(
     private readonly surface: HTMLElement,
@@ -47,6 +48,11 @@ export class Input {
     return this.presses.delete(button);
   }
 
+  /** True once per press of a key (by physical code), even if it was released before being read. */
+  consumeKeyPress(code: string): boolean {
+    return this.keyPresses.delete(code);
+  }
+
   /** Movement intent in screen space: x right, y up, each -1..1. Diagonals are not normalized. */
   moveAxis(): { x: number; y: number } {
     const pressed = (codes: readonly string[]) => codes.some((code) => this.keys.has(code));
@@ -73,6 +79,8 @@ export class Input {
   }
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
+    // Held keys repeat keydown; only the first counts as a press.
+    if (!event.repeat) this.keyPresses.add(event.code);
     this.keys.add(event.code);
   };
 
@@ -102,5 +110,6 @@ export class Input {
     this.keys.clear();
     this.buttons.clear();
     this.presses.clear();
+    this.keyPresses.clear();
   };
 }

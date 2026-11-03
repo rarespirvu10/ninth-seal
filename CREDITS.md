@@ -7,7 +7,7 @@ Third-party assets used in this project, with their licenses. The project's own 
 From [Mixamo](https://www.mixamo.com) by Adobe, used under the Mixamo terms, which allow their use in games. Only converted game files are included in this repository, never the raw downloads.
 
 - Characters: Paladin J Nordstrom, Skeletonzombie T Avelange
-- Animations: Sword And Shield Idle, Walk, Run, Slash, Attack, Impact, and Death; Zombie Idle, Walk, Attack, Reaction Hit, and Death
+- Animations: Sword And Shield Idle, Walk, Run, Slash, Attack, Kick, Impact, and Death; Standing Taunt Battlecry; Zombie Idle, Walk, Running, Attack, Reaction Hit, and Death
 
 ## Textures
 

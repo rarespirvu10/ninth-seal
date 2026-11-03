@@ -42,6 +42,16 @@ describe('Input', () => {
     expect(current.input.consumePress(MouseButton.Left)).toBe(false);
   });
 
+  it('reports a key press once, ignoring auto-repeat', () => {
+    current = setup();
+    window.dispatchEvent(key('keydown', 'Digit1'));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1', repeat: true }));
+    window.dispatchEvent(key('keyup', 'Digit1'));
+
+    expect(current.input.consumeKeyPress('Digit1')).toBe(true);
+    expect(current.input.consumeKeyPress('Digit1')).toBe(false);
+  });
+
   it('ignores presses outside the game surface', () => {
     current = setup();
     document.body.dispatchEvent(pointer('pointerdown', 10, 10));

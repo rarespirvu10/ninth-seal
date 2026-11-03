@@ -26,7 +26,8 @@ export interface EnemyDefinition {
 }
 
 /**
- * A shambling skeleton: slow and weak alone, dangerous in groups.
+ * A skeleton: weak alone, dangerous in groups. Stands idle until it notices the player, then
+ * lurches after them, a little slower than the player can run.
  * Its claw swing peaks at 1.0 s into the attack clip (measured from the right hand's speed).
  */
 export const SKELETON: EnemyDefinition = {
@@ -35,7 +36,7 @@ export const SKELETON: EnemyDefinition = {
   maxHealth: 60,
   aggroRange: 9,
   leashRange: 16,
-  chaseSpeed: 1.2,
+  chaseSpeed: 2.6,
   attackRange: 1.7,
   attackCooldown: 0.8,
   attack: { clip: 'attack', start: 0.25, end: 1.75, hit: [0.8, 1.2], damage: 12, range: 1.9, arc: 100 },
